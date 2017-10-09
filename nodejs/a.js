@@ -29,6 +29,16 @@ parseInteger();
 
 function arrayFunc() {
   console.log('----数组Array的使用--------------------');
+  var arrrcc={};
+  // arrrcc.p |= [];
+  console.log(arrrcc.p);
+  if (arrrcc.p === undefined) {
+    console.log("arrrcc.p is undefined");
+    arrrcc.p = [];
+  console.log(arrrcc.p);
+};
+  arrrcc.p.push('AAA')
+console.log(arrrcc.p);  
   var arrq = []
   arrq[0] = "George"
   arrq[1] = "John"
@@ -43,9 +53,17 @@ function arrayFunc() {
   console.log('往头部添加一个Mike')
   console.log('Array3=',arrq)
 
+  arrq.splice(1,1)
+  console.log('删除第2个位置')
+  console.log('Array4=',arrq)
+
+  arrq.push('Rose')
+  console.log('末尾添加一个元素')
+  console.log('Array5=',arrq)
+
   arrq = arrq.reverse()
   console.log('倒序')
-  console.log('Array4=',arrq)
+  console.log('Array6=',arrq)
 }
 arrayFunc();
 
@@ -146,6 +164,69 @@ function jsonArr() {
 }
 jsonArr();
 
- 
+function testJSONParse() {
+  var res = '[{"id":3,"createTime":"2017-09-07T05:55:03.80407Z","updateTime":"2017-09-07T05:55:03.80407Z","name":"peer1","alias":"节点1","ip":"192.168.0.14","sshPort":22,"sshUser":"peersafe","sshPwd":"dev1@peersafe","imageId":1,"dockerPorts":"","dockerCmd":"","networkId":4,"state":0,"type":1,"nodeCfg":{"Channels":"","Chaincodes":""}}]';
+  // {"data":[{"id":3,"createTime":"2017-09-07T05:55:03.80407Z","updateTime":"2017-09-07T05:55:03.80407Z","name":"peer1","alias":"节点1","ip":"192.168.0.14","sshPort":22,"sshUser":"peersafe","sshPwd":"dev1@peersafe","imageId":1,"dockerPorts":"","dockerCmd":"","dockerCfg":"{\"orgName\":\"dev\"}","networkId":4,"state":0,"type":1,"nodeCfg":{"Channels":"","Chaincodes":""}}],"status":200,"config":{"method":"GET","transformRequest":[null],"transformResponse":[null],"url":"http://192.168.0.185:8888/v1/nodes","params":{"networkId":4,"nodeType":1},"headers":{"Accept":"application/json, text/plain, */*","user":"zhongzheng","token":"f7f43831239a968fc33fa681e15ff11e"}},"statusText":"OK"}';
+  
+  console.log('json string=\n',res);
 
- 
+  var resjson = JSON.parse(res);
+  console.log(typeof resjson,'------json obj=\n',resjson);
+
+  // var resjson2 = JSON.parse(resjson);
+  // console.log('------json obj=\n',resjson2);
+}
+testJSONParse();
+
+function regIp(ip) {
+    if (ip == '0.0.0.0' || ip == '255.255.255.255' ||
+        !ip.match(/\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/)) {
+        console.log('ip 格式不正确', ip);
+    } else {
+        console.log('ip 格式正确', ip);
+    }
+}
+
+regIp('0.0.0.0');
+regIp('1.2.3.4');
+regIp('255.255.255.255');
+regIp('1234.1.1.1');
+regIp('1.1');
+regIp('1.a');
+regIp('255.255.255.254');
+regIp('192. 255.255.254');
+regIp('192.168.0.230');
+function regularIp(ip) {
+  if (ip == '0.0.0.0' || ip == '255.255.255.255' ||
+    !ip.match(/\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/)) {
+    console.log('ip 格式不正确', ip);
+    return false;
+  } else {
+    console.log('ip 格式正确', ip);
+    return true;
+  }
+}
+if (!regularIp('1. 2.3.4')) {
+  console.log('ERR');
+} else {
+  console.log('OK');
+}
+
+function revertArr() {
+  var arr=[3,7,2,6,1]
+  console.log(arr.reverse());
+  var a=[1,2,4,3]
+  var tail = a.length - 1;
+  console.log(a);
+  console.log(tail);
+
+  for (var i = 0; i <= tail; i++) {
+      var channal = a.splice(tail,1)[0];
+      console.log(channal,typeof channal)
+      a.splice(i,0,channal);
+  }
+  console.log(a);
+
+}
+revertArr();
+
