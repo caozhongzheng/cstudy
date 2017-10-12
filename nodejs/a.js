@@ -1,6 +1,18 @@
 'use strict'
 
 function formatDate() {
+
+  var time = new Date()
+  console.log('Date=',time)
+
+  var timemill = new Date().getUTCDate()
+  console.log('Date().getUTCDate=',timemill)
+
+  var unixTimestamp = new Date( 1477386005*1000 ) ;
+  console.log('Date(1477386005*1000)=',unixTimestamp);
+  commonTime = unixTimestamp.toLocaleString();
+  console.log('Date().toLocaleString',commonTime);
+
   console.log('----格式化日期字符串为Date类型--------------------');
   var CreatedAt="2017-08-21T18:36:33.072411+08:00";
   console.log('StringTime:',CreatedAt);
@@ -229,4 +241,31 @@ function revertArr() {
 
 }
 revertArr();
+function isLeapYr(yr) {
 
+    //判断闰年
+    return (yr % 4 === 0 && yr % 100 !== 0) || (yr % 100 === 0 && yr % 400 === 0);
+
+}
+
+function count(y, m, d) {
+
+    var mdays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    var mSum = 0;
+    var sum = 0;
+
+    //如果是闰年的话，那么2月份就应该有29天
+    isLeapYr(y) ? mdays[1] = 29 : mdays[1];
+
+    //计算该月份之前的总天数，比如m=3，那么就计算1和2月的总天数
+    for (var i = 0; i < m - 1; i++) {
+        mSum += mdays[i];
+    }
+
+    //加上当月天数
+    sum = mSum + d;
+
+    return sum;
+}
+var dayOfYear = count(2016,7,10);
+console.log('20160710是一年的第几天：',dayOfYear);
