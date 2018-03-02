@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<!-- saved from url=(0068)https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html -->
+<html lang="zh-cn"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Android四大基本组件介绍与生命周期 - bravestarr - 博客园</title>
+<link type="text/css" rel="stylesheet" href="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/blog-common.css">
+<link id="MainCss" type="text/css" rel="stylesheet" href="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/bundle-ClearScreen01.css">
+<link id="mobile-style" media="only screen and (max-width: 767px)" type="text/css" rel="stylesheet" href="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/bundle-ClearScreen01-mobile.css">
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/bravestarrhu/rss">
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/bravestarrhu/rsd.xml">
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/bravestarrhu/wlwmanifest.xml">
+<script async="" src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/analytics.js"></script><script type="text/javascript" src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/encoder.js"></script><script src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/jquery.js" type="text/javascript"></script><style type="text/css" abt="234"></style>  
+<script type="text/javascript">var currentBlogApp = 'bravestarrhu', cb_enable_mathjax=false;var isLogined=false;</script>
+<script src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/blog-common.js" type="text/javascript"></script>
+<script>//console.log('a')
+</script><script>doAdblock();
+function doAdblock(){
+    (function() {
+        function A() {}
+        A.prototype = {
+            rules: {
+                'pps_pps': {
+                    'find': /^http:\/\/www\.iqiyi\.com\/player\/cupid\/common\/pps_flvplay_s\.swf/,
+                    'replace': 'http://swf.adtchrome.com/pps_20140420.swf'
+                },
+                '17173_in':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/PreloaderFile(Customer)?\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173_in_20150522.swf"
+                },
+                '17173_out':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/PreloaderFileFirstpage\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173_out_20150522.swf"
+                },
+                '17173_live':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/Player_stream(_firstpage)?\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173_stream_20150522.swf"
+                },
+                '17173_live_out':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/Player_stream_(custom)?Out\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173.out.Live.swf"
+                }
+            },
+            _done: null,
+            get done() {
+                if(!this._done) {
+                    this._done = new Array();
+                }
+                return this._done;
+            },
+            addAnimations: function() {
+                var style = document.createElement('style');
+                style.type = 'text/css';
+                style.innerHTML = 'object,embed{\
+                -webkit-animation-duration:.001s;-webkit-animation-name:playerInserted;\
+                -ms-animation-duration:.001s;-ms-animation-name:playerInserted;\
+                -o-animation-duration:.001s;-o-animation-name:playerInserted;\
+                animation-duration:.001s;animation-name:playerInserted;}\
+                @-webkit-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}\
+                @-ms-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}\
+                @-o-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}\
+                @keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}';
+                document.getElementsByTagName('head')[0].appendChild(style);
+            },
+            animationsHandler: function(e) {
+                if(e.animationName === 'playerInserted') {
+                    this.replace(e.target);
+                }
+            },
+            replace: function(elem) {
+                if (/http:\/\/v.youku.com\/v_show\/.*/.test(window.location.href)){
+                    var tag = document.getElementById("playerBox").getAttribute("player")
+                    if (tag == "adt"){
+                        console.log("adt adv")
+                        return;
+                    }
+                }
+                if(this.done.indexOf(elem) != -1) return;
+                this.done.push(elem);
+                var player = elem.data || elem.src;
+                if(!player) return;
+                var i, find, replace = false;
+                for(i in this.rules) {
+                    find = this.rules[i]['find'];
+                    if(find.test(player)) {
+                        replace = this.rules[i]['replace'];
+                        if('function' === typeof this.rules[i]['preHandle']) {
+                            this.rules[i]['preHandle'].bind(this, elem, find, replace, player)();
+                        }else{
+                            this.reallyReplace.bind(this, elem, find, replace)();
+                        }
+                        break;
+                    }
+                }
+            },
+            reallyReplace: function(elem, find, replace) {
+                elem.data && (elem.data = elem.data.replace(find, replace)) || elem.src && ((elem.src = elem.src.replace(find, replace)) && (elem.style.display = 'block'));
+                var b = elem.querySelector("param[name='movie']");
+                this.reloadPlugin(elem);
+            },
+            reloadPlugin: function(elem) {
+                var nextSibling = elem.nextSibling;
+                var parentNode = elem.parentNode;
+                parentNode.removeChild(elem);
+                var newElem = elem.cloneNode(true);
+                this.done.push(newElem);
+                if(nextSibling) {
+                    parentNode.insertBefore(newElem, nextSibling);
+                } else {
+                    parentNode.appendChild(newElem);
+                }
+            },
+            init: function() {
+                var handler = this.animationsHandler.bind(this);
+                document.body.addEventListener('webkitAnimationStart', handler, false);
+                document.body.addEventListener('msAnimationStart', handler, false);
+                document.body.addEventListener('oAnimationStart', handler, false);
+                document.body.addEventListener('animationstart', handler, false);
+                this.addAnimations();
+            }
+        };
+        new A().init();
+    })();
+}
+// 20140730
+(function cnbeta() {
+    if (document.URL.indexOf('cnbeta.com') >= 0) {
+        var elms = document.body.querySelectorAll("p>embed");
+        Array.prototype.forEach.call(elms, function(elm) {
+            elm.style.marginLeft = "0px";
+        });
+    }
+})();
+//baidu
+if(document.URL.indexOf('www.baidu.com') >= 0){
+    if(document && document.getElementsByTagName && document.getElementById && document.body){
+        var aa = function(){
+            var all = document.body.querySelectorAll("#content_left div,#content_left table");
+            for(var i = 0; i < all.length; i++){
+                if(/display:\s?(table|block)\s!important/.test(all[i].getAttribute("style"))){all[i].style.display= "none";all[i].style.visibility='hidden';}
+            }
+            all = document.body.querySelectorAll('.result.c-container[id="1"]');
+            //if(all.length == 1) return;
+            for(var i = 0; i < all.length; i++){
+                if(all[i].innerHTML && all[i].innerHTML.indexOf('广告')>-1){
+                    all[i].style.display= "none";all[i].style.visibility='hidden';
+                }
+            }
+        }
+        aa();
+        document.getElementById('wrapper_wrapper').addEventListener('DOMSubtreeModified',aa)
+    };
+}
+// 20140922
+(function kill_360() {
+    if (document.URL.indexOf('so.com') >= 0) {
+        document.getElementById("e_idea_pp").style.display = none;
+    }
+})();
+if (document.URL.indexOf("tv.sohu.com") >= 0){
+    if (document.cookie.indexOf("fee_status=true")==-1){document.cookie='fee_status=true'};
+}
+if (document.URL.indexOf("56.com") >= 0){
+    if (document.cookie.indexOf("fee_status=true")==-1){document.cookie='fee_status=true'};
+}
+if (document.URL.indexOf("iqiyi.com") >= 0){
+    if (document.cookie.indexOf("player_forcedType=h5_VOD")==-1){
+        document.cookie='player_forcedType=h5_VOD'
+        if(localStorage.reloadTime && Date.now() - parseInt(localStorage.reloadTime)<60000){
+            console.log('no reload')
+        }else{
+            location.reload()
+            localStorage.reloadTime = Date.now();
+        }
+    }
+}
+</script><style type="text/css">object,embed{                -webkit-animation-duration:.001s;-webkit-animation-name:playerInserted;                -ms-animation-duration:.001s;-ms-animation-name:playerInserted;                -o-animation-duration:.001s;-o-animation-name:playerInserted;                animation-duration:.001s;animation-name:playerInserted;}                @-webkit-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}                @-ms-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}                @-o-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}                @keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}</style><style id="style-1-cropbar-clipper">/* Copyright 2014 Evernote Corporation. All rights reserved. */
+.en-markup-crop-options {
+    top: 18px !important;
+    left: 50% !important;
+    margin-left: -100px !important;
+    width: 200px !important;
+    border: 2px rgba(255,255,255,.38) solid !important;
+    border-radius: 4px !important;
+}
+
+.en-markup-crop-options div div:first-of-type {
+    margin-left: 0px !important;
+}
+</style></head>
+<body>
+<a name="top"></a>
+
+<!--done-->
+<div id="header">
+	
+<!--done-->
+<div class="header">
+	<div class="headerText">
+		<a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/bravestarrhu/">bravestarr</a><br>
+		
+	</div>
+</div>
+
+</div>
+<div id="mylinks">
+<!--done-->
+<a id="blog_nav_sitehome" class="listitem" href="http://www.cnblogs.com/">博客园</a>&nbsp;&nbsp;::&nbsp;
+<a id="blog_nav_myhome" class="listitem" href="http://www.cnblogs.com/bravestarrhu/">首页</a>&nbsp;&nbsp;::&nbsp;
+<a id="blog_nav_newpost" class="listitem" rel="nofollow" href="https://i.cnblogs.com/EditPosts.aspx?opt=1">新随笔</a>&nbsp;&nbsp;::&nbsp;
+<a id="blog_nav_contact" accesskey="9" class="listitem" rel="nofollow" href="https://msg.cnblogs.com/send/bravestarr">联系</a>&nbsp;&nbsp;::&nbsp;
+<a id="blog_nav_rss" class="listitem" href="http://www.cnblogs.com/bravestarrhu/rss">订阅</a>&nbsp;<a id="blog_nav_rss_image" href="http://www.cnblogs.com/bravestarrhu/rss"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/xml.gif" alt="订阅"></a>&nbsp;&nbsp;::&nbsp;
+<a id="blog_nav_admin" class="listitem" rel="nofollow" href="https://i.cnblogs.com/">管理</a>
+</div>
+<div id="mytopmenu">
+	
+		<div id="mystats">
+			<div id="blog_stats">
+<!--done-->
+<div class="blogStats">
+posts - 24,&nbsp;
+comments - 65,&nbsp;
+trackbacks - 0
+
+</div></div></div>
+	
+</div>
+<div id="main">
+    <div id="leftcontent">
+	    
+		    <div id="leftcontentcontainer">
+			    
+<!--done-->
+<div class="news">公告</div>
+	<div class="newsItem">
+		<div id="blog-news"><div id="profile_block">昵称：<a href="http://home.cnblogs.com/u/bravestarrhu/">bravestarr</a><br>园龄：<a href="http://home.cnblogs.com/u/bravestarrhu/" title="入园时间：2012-04-25">5年6个月</a><br>粉丝：<a href="http://home.cnblogs.com/u/bravestarrhu/followers/">168</a><br>关注：<a href="http://home.cnblogs.com/u/bravestarrhu/followees/">4</a><div id="p_b_follow"><a href="javascript:void(0);" onclick="follow(&#39;0a27fa13-978e-e111-aa3f-842b2b196315&#39;)">+加关注</a></div></div></div><script type="text/javascript">loadBlogNews();</script>
+	</div>
+
+			    <div id="blog-calendar" style=""><table id="blogCalendar" class="Cal" cellspacing="0" cellpadding="0" title="Calendar">
+	<tbody><tr><td colspan="7"><table class="CalTitle" cellspacing="0">
+		<tbody><tr><td class="CalNextPrev"><a href="javascript:void(0);" onclick="loadBlogCalendar(&#39;2017/10/01&#39;);return false;">&lt;</a></td><td align="center">2017年11月</td><td class="CalNextPrev" align="right"><a href="javascript:void(0);" onclick="loadBlogCalendar(&#39;2017/12/01&#39;);return false;">&gt;</a></td></tr>
+	</tbody></table></td></tr><tr><th class="CalDayHeader" align="center" abbr="日" scope="col">日</th><th class="CalDayHeader" align="center" abbr="一" scope="col">一</th><th class="CalDayHeader" align="center" abbr="二" scope="col">二</th><th class="CalDayHeader" align="center" abbr="三" scope="col">三</th><th class="CalDayHeader" align="center" abbr="四" scope="col">四</th><th class="CalDayHeader" align="center" abbr="五" scope="col">五</th><th class="CalDayHeader" align="center" abbr="六" scope="col">六</th></tr><tr><td class="CalOtherMonthDay" align="center">29</td><td class="CalOtherMonthDay" align="center">30</td><td class="CalOtherMonthDay" align="center">31</td><td align="center">1</td><td align="center">2</td><td align="center">3</td><td class="CalWeekendDay" align="center">4</td></tr><tr><td class="CalWeekendDay" align="center">5</td><td align="center">6</td><td align="center">7</td><td align="center">8</td><td align="center">9</td><td align="center">10</td><td class="CalWeekendDay" align="center">11</td></tr><tr><td class="CalWeekendDay" align="center">12</td><td align="center">13</td><td align="center">14</td><td align="center">15</td><td align="center">16</td><td align="center">17</td><td class="CalWeekendDay" align="center">18</td></tr><tr><td class="CalWeekendDay" align="center">19</td><td class="CalTodayDay" align="center">20</td><td align="center">21</td><td align="center">22</td><td align="center">23</td><td align="center">24</td><td class="CalWeekendDay" align="center">25</td></tr><tr><td class="CalWeekendDay" align="center">26</td><td align="center">27</td><td align="center">28</td><td align="center">29</td><td align="center">30</td><td class="CalOtherMonthDay" align="center">1</td><td class="CalOtherMonthDay" align="center">2</td></tr><tr><td class="CalOtherMonthDay" align="center">3</td><td class="CalOtherMonthDay" align="center">4</td><td class="CalOtherMonthDay" align="center">5</td><td class="CalOtherMonthDay" align="center">6</td><td class="CalOtherMonthDay" align="center">7</td><td class="CalOtherMonthDay" align="center">8</td><td class="CalOtherMonthDay" align="center">9</td></tr>
+</tbody></table></div><script type="text/javascript">loadBlogDefaultCalendar();</script>
+			    <div id="blog-sidecolumn"><div id="sidebar_search" class="sidebar-block">
+<div id="sidebar_search" class="mySearch">
+<h3 class="catListTitle">搜索</h3>
+<div id="sidebar_search_box">
+<div id="widget_my_zzk" class="div_my_zzk"><input type="text" id="q" onkeydown="return zzk_go_enter(event);" class="input_my_zzk">&nbsp;<input onclick="zzk_go()" type="button" value="找找看" id="btnZzk" class="btn_my_zzk"></div>
+
+</div>
+</div>
+
+</div><div id="sidebar_toptags" class="sidebar-block">
+<h3 class="catListTitle">我的标签</h3>
+<div id="MyTag">
+<ul>
+<li><a href="http://www.cnblogs.com/bravestarrhu/tag/Activity%E4%B8%AD%E4%B8%8EListActivity%E4%B8%AD%E4%BD%BF%E7%94%A8listview%E5%8C%BA%E5%88%AB/">Activity中与ListActivity中使用listview区别</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/ADT%E6%9B%B4%E6%96%B0/">ADT更新</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/android%20studio/">android studio</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/android%20xml%E8%A7%A3%E6%9E%90/">android xml解析</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/Android%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">Android环境搭建</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/android%E4%BD%BF%E7%94%A8JsonWriter%E6%8B%BCjson%E5%AD%97%E7%AC%A6%E4%B8%B2/">android使用JsonWriter拼json字符串</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/android%E9%80%82%E9%85%8D%E5%99%A8Adapter/">android适配器Adapter</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/android%E6%95%B0%E6%8D%AE%E5%AD%98%E5%82%A8%E4%B9%8B%E5%A4%96%E9%83%A8%E5%AD%98%E5%82%A8%EF%BC%88External%20Storage%EF%BC%89/">android数据存储之外部存储（External Storage）</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/Android%E5%9B%9B%E5%A4%A7%E5%9F%BA%E6%9C%AC%E7%BB%84%E4%BB%B6%E4%BB%8B%E7%BB%8D%E4%B8%8E%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">Android四大基本组件介绍与生命周期</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/Android%E7%89%B9%E6%80%A7%E4%B8%8E%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84/">Android特性与系统架构</a>(1)</li><li><a href="http://www.cnblogs.com/bravestarrhu/tag/">更多</a></li>
+</ul>
+</div></div><div id="sidebar_categories">
+<!--done-->
+
+		<h1 class="catListTitle">随笔分类</h1>
+		
+				<ul class="catList">
+			
+				<li class="catListItem"> <a id="CatList_LinkList_0_Link_0" class="listitem" href="http://www.cnblogs.com/bravestarrhu/category/377032.html">android天下(22)</a></li>
+			
+				</ul>
+			
+	
+		<h1 class="catListTitle">随笔档案</h1>
+		
+				<ul class="catList">
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_0" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2017/06.html">2017年6月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_1" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2016/12.html">2016年12月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_2" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2015/08.html">2015年8月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_3" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2015/07.html">2015年7月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_4" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2015/05.html">2015年5月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_5" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2014/07.html">2014年7月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_6" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2014/05.html">2014年5月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_7" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2014/03.html">2014年3月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_8" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2012/09.html">2012年9月 (3)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_9" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2012/08.html">2012年8月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_10" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2012/07.html">2012年7月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_11" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2012/06.html">2012年6月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="CatList_LinkList_1_Link_12" class="listitem" href="http://www.cnblogs.com/bravestarrhu/archive/2012/05.html">2012年5月 (8)</a></li>
+			
+				</ul>
+			
+	
+</div><div id="sidebar_recentcomments" class="sidebar-block"><div id="recent_comments_wrap">
+<h3 class="catListTitle">最新评论</h3>
+<div class="RecentComment" id="RecentComments">
+	<div id="RecentCommentsBlock"><ul>
+        <li class="recent_comment_title"><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3581137">1. Re:Android四大基本组件介绍与生命周期</a></li>
+        <li class="recent_comment_body">写的很详细，不过在ContentProvider的重写方法的注释是不是写错了？？</li>
+        <li class="recent_comment_author">--Mosawei</li>
+        <li class="recent_comment_title"><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3505933">2. Re:Android四大基本组件介绍与生命周期</a></li>
+        <li class="recent_comment_body">要自己敲敲代码，验证一下，讲的非常详细，如果可以把几种组件组合起来的应用场景介绍一下就更不错了</li>
+        <li class="recent_comment_author">--专注一点</li>
+        <li class="recent_comment_title"><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3472743">3. Re:Android四大基本组件介绍与生命周期</a></li>
+        <li class="recent_comment_body">不错。楼主说的很详细</li>
+        <li class="recent_comment_author">--中洲大帝</li>
+        <li class="recent_comment_title"><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3384872">4. Re:Android四大基本组件介绍与生命周期</a></li>
+        <li class="recent_comment_body">赞一个~</li>
+        <li class="recent_comment_author">--pon_3</li>
+        <li class="recent_comment_title"><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3367164">5. Re:Android四大基本组件介绍与生命周期</a></li>
+        <li class="recent_comment_body">写这么多看的想睡觉，我是新手，给博主提个建议，我觉得最好的讲解方式就是直接上例子，然后根据例子来展开讲解，不然真的很多都搞不懂</li>
+        <li class="recent_comment_author">--najiutan</li>
+</ul>
+</div>
+</div>
+</div></div><div id="sidebar_topviewedposts" class="sidebar-block"><div id="topview_posts_wrap">
+<h3 class="catListTitle">阅读排行榜</h3>
+<div class="RecentComment" id="TopViewPosts"> 
+	<div id="TopViewPostsBlock"><ul><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html">1. Android四大基本组件介绍与生命周期(402616)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/07/17/2595598.html">2. Android中通过typeface设置字体(85644)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/04/2483179.html">3. android适配器Adapter(22450)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/03/2481265.html">4. 常用控件应用之文本框（TextView）特效(14974)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/09/06/2673789.html">5. android中获取View的绝对坐标(12430)</a></li></ul></div>
+</div>
+</div></div><div id="sidebar_topcommentedposts" class="sidebar-block"><div id="topfeedback_posts_wrap">
+<h3 class="catListTitle">评论排行榜</h3>
+<div class="RecentComment" id="TopCommentsPosts">
+	<div id="TopFeedbackPostsBlock"><ul><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html">1. Android四大基本组件介绍与生命周期(59)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/06/2486703.html">2. Activity中与ListActivity中使用listview区别(2)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/03/2481265.html">3. 常用控件应用之文本框（TextView）特效(2)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/07/2489266.html">4. ListView+Adapter适配器的使用与Listview常见的UI显示问题(1)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/04/2483179.html">5. android适配器Adapter(1)</a></li></ul></div>
+</div></div></div><div id="sidebar_topdiggedposts" class="sidebar-block"><div id="topdigg_posts_wrap">
+<h3 class="catListTitle">推荐排行榜</h3>
+<div class="RecentComment">
+	<div id="TopDiggPostsBlock"><ul><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html">1. Android四大基本组件介绍与生命周期(73)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/Android.html">2. Android特性与系统架构(4)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/07/2489266.html">3. ListView+Adapter适配器的使用与Listview常见的UI显示问题(2)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/04/2483179.html">4. android适配器Adapter(2)</a></li><li><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479415.html">5. Android环境搭建(含NDK的配置与使用，如果需要自己编译so库则可参考该内容，如果只使用其他人编译好的so则可略过NDK配置)(1)</a></li></ul></div>
+</div></div></div></div><script type="text/javascript">loadBlogSideColumn();</script></div>
+	    
+    </div>
+    <div id="centercontent">
+	    
+<div id="post_detail">
+<!--done-->
+<div class="post">
+	<div class="postTitle">
+		<a id="cb_post_title_url" class="postTitle2" href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html">Android四大基本组件介绍与生命周期</a>
+	</div>
+	<div id="cnblogs_post_body"><p align="left">Android四大基本组件分别是Activity，Service服务,Content Provider内容提供者，BroadcastReceiver广播接收器。</p>
+<p align="left">一:了解四大基本组件</p>
+<p align="left"><strong>Activity :</strong></p>
+<p align="left">应用程序中，一个Activity通常就是一个单独的屏幕，它上面可以显示一些控件也可以监听并处理用户的事件做出响应。</p>
+<p align="left">Activity之间通过Intent进行通信。在Intent 的描述结构中，有两个最重要的部分：动作和动作对应的数据。</p>
+<p align="left">典型的动作类型有：M AIN（activity的门户）、VIEW、PICK、EDIT 等。而动作对应的数据则以URI 的形式进行表示。例如：要查看一个人的联系方式，你需要创建一个动作类型为VIEW 的intent，以及一个表示这个人的URI。</p>
+<p align="left">与之有关系的一个类叫IntentFilter。相对于intent 是一个有效的做某事的请求，一个intentfilter 则用于描述一个activity（或者IntentReceiver）能够操作哪些intent。一个activity 如果要显示一个人的联系方式时，需要声明一个IntentFilter，这个IntentFilter 要知道怎么去处理VIEW 动作和表示一个人的URI。IntentFilter 需要在AndroidManifest.xml 中定义。通过解析各种intent，从一个屏幕导航到另一个屏幕是很简单的。当向前导航时，activity 将会调用startActivity(Intent myIntent)方法。然后，系统会在所有安装的应用程序中定义的IntentFilter 中查找，找到最匹配myIntent 的Intent 对应的activity。新的activity 接收到myIntent 的通知后，开始运行。当startActivity 方法被调用将触发解析myIntent 的动作，这个机制提供了两个关键好处：</p>
+<p align="left">A、Activities 能够重复利用从其它组件中以Intent 的形式产生的一个请求；</p>
+<p align="left">B、Activities 可以在任何时候被一个具有相同IntentFilter 的新的Activity 取代。</p>
+<p align="left">AndroidManifest文件中含有如下过滤器的Activity组件为默认启动类当程序启动时系统自动调用它</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">intent-filter</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">action </span><span style="color: #ff0000;">android:name</span><span style="color: #0000ff;">="android.intent.action.MAIN"</span> <span style="color: #0000ff;">/&gt;</span>
+       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">category </span><span style="color: #ff0000;">android:name</span><span style="color: #0000ff;">="android.intent.category.LAUNCHER"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">intent-filter</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p align="left"><strong>BroadcastReceive</strong><strong>广播接收器:</strong></p>
+<p align="left">你的应用可以使用它对外部事件进行过滤只对感兴趣的外部事件(如当电话呼入时，或者数据网络可用时)进行接收并做出响应。广播接收器没有用户界面。然而，它们可以启动一个activity或serice 来响应它们收到的信息，或者用NotificationManager 来通知用户。通知可以用很多种方式来吸引用户的注意力──闪动背灯、震动、播放声音等。一般来说是在状态栏上放一个持久的图标，用户可以打开它并获取消息。</p>
+<p align="left">广播类型：</p>
+<p align="left">普通广播<strong>，</strong>通过Context.sendBroadcast(Intent myIntent)发送的</p>
+<p align="left">有序广播<strong>，</strong>通过Context.sendOrderedBroadcast(intent, receiverPermission)发送的，该方法第2个参数决定该广播的级别，级别数值是在 -1000 到 1000 之间 , 值越大 , 发送的优先级越高；广播接收者接收广播时的级别级别（可通过intentfilter中的priority进行设置设为2147483647时优先级最高），同级别接收的先后是随机的， 再到级别低的收到广播，高级别的或同级别先接收到广播的可以通过abortBroadcast()方法截断广播使其他的接收者无法收到该广播，还有其他构造函数</p>
+<p align="left">异步广播<strong>，</strong>通过Context.sendStickyBroadcast(Intent myIntent)发送的，还有sendStickyOrderedBroadcast(intent, resultReceiver, scheduler, &nbsp;initialCode, initialData, initialExtras)方法，该方法具有有序广播的特性也有异步广播的特性；发送异步广播要： &lt;uses-permission android:name=<em>"android.permission.BROADCAST_STICKY"</em> /&gt;权限，接收并处理完Intent后，广播依然存在，直到你调用removeStickyBroadcast(intent)主动把它去掉</p>
+<p align="left">注意：发送广播时的intent参数与Contex.startActivity()启动起来的Intent不同,前者可以被多个订阅它的广播接收器调用,后者只能被一个(Activity或service)调用</p>
+<p align="left">监听广播Intent步骤:</p>
+<p align="left">1&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;写一个继承BroadCastReceiver的类,重写onReceive()方法,广播接收器仅在它执行这个方法时处于活跃状态。当onReceive()返回后，它即为失活状态,注意:为了保证用户交互过程的流畅,一些费时的操作要放到线程里,如类名SMSBroadcastReceiver</p>
+<p align="left">2&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;注册该广播接收者,注册有两种方法程序动态注册和AndroidManifest文件中进行静态注册（可理解为系统中注册）如下：</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;静态注册,注册的广播，下面的priority表示接收广播的级别"<span style="color: #0000ff;">2147483647"</span>为最高优先级</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">receiver </span><span style="color: #ff0000;">android:name</span><span style="color: #0000ff;">=".SMSBroadcastReceiver"</span> <span style="color: #0000ff;">&gt;</span>
+　　<span>&lt;</span><span style="color: #800000;">intent-filter </span><span style="color: #ff0000;">android:priority </span><span style="color: #0000ff;">= "2147483647"</span> <span style="color: #0000ff;">&gt;</span>
+　　　　<span>&lt;</span><span style="color: #800000;">action </span><span style="color: #ff0000;">android:name</span><span style="color: #0000ff;">="android.provider.Telephony.SMS_RECEIVED"</span> <span style="color: #0000ff;">/&gt;</span>
+　　<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">intent-filter</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">receiver </span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>动态注册，一般在Activity可交互时onResume()内注册BroadcastReceiver</p>
+<div class="cnblogs_code">
+<pre>IntentFilter intentFilter=<span style="color: #0000ff;">new</span> IntentFilter("android.provider.Telephony.SMS_RECEIVED"<span style="color: #000000;">);
+registerReceiver(mBatteryInfoReceiver ,intentFilter);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">反注册</span>
+unregisterReceiver(receiver);</pre>
+</div>
+<p align="left">注意：</p>
+<p align="left">1.生命周期只有十秒左右，如果在 onReceive() 内做超过十秒内的事情，就会报ANR(Application No Response) 程序无响应的错误信息，如果需要完成一项比较耗时的工作 , 应该通过发送 Intent 给 Service, 由Service 来完成 . 这里不能使用子线程来解决 , 因为 BroadcastReceiver 的生命周期很短 , 子线程可能还没有结束BroadcastReceiver 就先结束了 .BroadcastReceiver 一旦结束 , 此时 BroadcastReceiver 的所在进程很容易在系统需要内存时被优先杀死 , 因为它属于空进程 ( 没有任何活动组件的进程 ). 如果它的宿主进程被杀死 , 那么正在工作的子线程也会被杀死 . 所以采用子线程来解决是不可靠的</p>
+<p align="left">2. 动态注册广播接收器还有一个特点，就是当用来注册的Activity关掉后，广播也就失效了。静态注册无需担忧广播接收器是否被关闭,只要设备是开启状态,广播接收器也是打开着的。也就是说哪怕app本身未启动,该app订阅的广播在触发时也会对它起作用</p>
+<p align="left">系统常见广播Intent,如开机启动、电池电量变化、时间改变等广播</p>
+<p align="left"><strong>Service </strong><strong>服务:</strong></p>
+<p align="left">一个Service 是一段长生命周期的，没有用户界面的程序，可以用来开发如监控类程序。</p>
+<p align="left">比较好的一个例子就是一个正在从播放列表中播放歌曲的媒体播放器。在一个媒体播放器的应用中，应该会有多个activity，让使用者可以选择歌曲并播放歌曲。然而，音乐重放这个功能并没有对应的activity，因为使用者当然会认为在导航到其它屏幕时音乐应该还在播放的。在这个例子中，媒体播放器这个activity 会使用Context.startService()来启动一个service，从而可以在后台保持音乐的播放。同时，系统也将保持这个service 一直执行，直到这个service 运行结束。另外，我们还可以通过使用Context.bindService()方法，连接到一个service 上（如果这个service 还没有运行将启动它）。当连接到一个service 之后，我们还可以service 提供的接口与它进行通讯。拿媒体播放器这个例子来说，我们还可以进行暂停、重播等操作。</p>
+<p align="left">Service使用步骤如下</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&gt;继承service类</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2&gt;AndroidManifast.xml配置清单文件中&lt;application&gt;节点里对服务进行配置</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;service name=".SMSService"/&gt;</p>
+<p align="left">服务不能自己运行,需要通过Contex.startService()或Contex.bindService()启动服务</p>
+<p align="left">通过startService()方法启动的服务于调用者没有关系,即使调用者关闭了,服务仍然运行想停止服务要调用Context.stopService(),此时系统会调用onDestory(),使用此方法启动时,服务首次启动系统先调用服务的onCreate()--&gt;onStart(),如果服务已经启动再次调用只会触发onStart()方法</p>
+<p align="left">使用bindService()启动的服务与调用者绑定,只要调用者关闭服务就终止,使用此方法启动时,服务首次启动系统先调用服务的onCreate()--&gt;onBind(),如果服务已经启动再次调用不会再触发这2个方法,调用者退出时系统会调用服务的onUnbind()--&gt;onDestory(),想主动解除绑定可使用Contex.unbindService(),系统依次调用onUnbind()--&gt;onDestory();</p>
+<p align="left"><strong>Content Provider</strong><strong>内容提供者 :</strong></p>
+<p align="left">android平台提供了Content Provider使一个应用程序的指定数据集提供给其他应用程序。这些数据可以存储在文件系统中、在一个SQLite数据库、或以任何其他合理的方式,</p>
+<p align="left">其他应用可以通过ContentResolver类(见ContentProviderAccessApp例子)从该内容提供者中获取或存入数据.(相当于在应用外包了一层壳),</p>
+<p align="left">只有需要在多个应用程序间共享数据是才需要内容提供者。例如，通讯录数据被多个应用程序使用，且必须存储在一个内容提供者中</p>
+<p align="left">它的好处:统一数据访问方式。</p>
+<p align="left">android系统自带的内容提供者(顶级的表示数据库名,非顶级的都是表名)这些内容提供者在SDK文档的android.provider Java包中都有介绍。见：http://developer.android.com/reference/android/provider/package-summary.html</p>
+<p align="left">├────Browser</p>
+<p align="left">├────CallLog</p>
+<p align="left">├────Contacts</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├────Groups</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├────People</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├────Phones</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └────Photos</p>
+<p align="left">├────Images</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └────Thumbnails</p>
+<p align="left">├────MediaStore</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├────Albums</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├────Artists</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├────Audio</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├────Genres</p>
+<p align="left">│&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └────Playlists</p>
+<p align="left">├────Settings</p>
+<p align="left">└────Video</p>
+<p align="left">&nbsp;CallLog：地址和接收到的电话信息</p>
+<p align="left">&nbsp;Contact.People.Phones：存储电话号码</p>
+<p align="left">&nbsp;Setting.System：系统设置和偏好设置</p>
+<p align="left">使用Content Provider对外共享数据的步骤</p>
+<p align="left">1&gt;继承ContentProvider类并根据需求重写以下方法:</p>
+<p align="left">&nbsp;</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre><span style="color: #0000ff;">　　　　public</span> <span style="color: #0000ff;">boolean</span> onCreate();<span style="color: #008000;">//</span><span style="color: #008000;">处理初始化操作</span>
+
+       <span style="color: #008000;">/**</span><span style="color: #008000;">
+        * 插入数据到内容提供者(允许其他应用向你的应用中插入数据时重写)
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> uri
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> initialValues 插入的数据
+        * </span><span style="color: #808080;">@return</span>
+        <span style="color: #008000;">*/</span>
+       <span style="color: #0000ff;">public</span><span style="color: #000000;"> Uri insert(Uri uri, ContentValues initialValues);
+
+       </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+        * 从内容提供者中删除数据(允许其他应用删除你应用的数据时重写)
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> uri
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> selection 条件语句
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> selectionArgs 参数
+        * </span><span style="color: #808080;">@return</span>
+        <span style="color: #008000;">*/</span>
+       <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> delete(Uri uri, String selection, String[] selectionArgs);
+
+       </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+        * 更新内容提供者已存在的数据(允许其他应用更新你应用的数据时重写)
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> uri
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> values 更新的数据
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> selection 条件语句
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> selectionArgs 参数
+        * </span><span style="color: #808080;">@return</span>
+        <span style="color: #008000;">*/</span>
+       <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> update(Uri uri, ContentValues values, String selection,
+                     String[] selectionArgs);
+
+       </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+        * 返回数据给调用者(允许其他应用从你的应用中获取数据时重写)
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> uri
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> projection 列名
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> selection 条件语句
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> selectionArgs 参数
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> sortOrder 排序
+        * </span><span style="color: #808080;">@return</span>
+        <span style="color: #008000;">*/</span>
+       <span style="color: #0000ff;">public</span><span style="color: #000000;"> Cursor query(Uri uri, String[] projection, String selection,
+                     String[] selectionArgs, String sortOrder) ;         
+
+       </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+        * 用于返回当前Uri所代表数据的MIME类型
+        * 如果操作的数据为集合类型(多条数据),那么返回的类型字符串应该为vnd.android.cursor.dir/开头
+        * 例如要得到所有person记录的Uri为content://com.bravestarr.provider.personprovider/person,<br>　　　　 <span style="color: #008000;">*</span>　　　那么返回的MIME类型字符串应该为"vnd.android.cursor.dir/person"
+        * 如果操作的数据为单一数据,那么返回的类型字符串应该为vnd.android.cursor.item/开头
+        * 例如要得到id为10的person记录的Uri为content://com.bravestarr.provider.personprovider/person/10,<br>　　　　 <span style="color: #008000;">*</span>　　　那么返回的MIME类型字符串应该为"vnd.android.cursor.item/person"
+        * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> uri
+        </span><span style="color: #008000;">*/</span>
+       <span style="color: #0000ff;">public</span> String getType(Uri uri)</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p align="left">这些方法中的Uri参数,得到后需要进行解析然后做对应处理,Uri表示要操作的数据,包含两部分信息:</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.需要操作的contentprovider</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2.对contentprovider中的什么数据进行操作,一个Uri格式:结构头://authorities(域名)/路径(要操作的数据,根据业务而定)</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; content://com.bravestarr.provider.personprovider/person/10</p>
+<p align="left">说明:contentprovider的结构头已经由android规定为content://</p>
+<p align="left">authorities用于唯一标识这个contentprovider程序,外部调用者可以根据这个找到他</p>
+<p align="left">路径表示我们要操作的数据,路径的构建根据业务而定.路径格式如下:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 要操作person表行号为10的记录,可以这样构建/person/10</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 要操作person表的所有记录,可以这样构建/person</p>
+<p align="left">2&gt;在AndroidManifest.xml中使用&lt;provider&gt;对ContentProvider进行配置注册(内容提供者注册它自己就像网站注册域名),ContentProvider采用authoritie(原意授权,可理解为域名)作为唯一标识,方便其他应用能找到</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">application
+        </span><span style="color: #ff0000;">android:icon</span><span style="color: #0000ff;">="@drawable/ic_launcher"</span><span style="color: #ff0000;">
+        android:label</span><span style="color: #0000ff;">="@string/app_name"</span> <span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> authorities属性命名建议:公司名.provider.SomeProvider</span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">provider </span><span style="color: #ff0000;">android:name</span><span style="color: #0000ff;">=".PersonProvider"</span><span style="color: #ff0000;"> android:authorities</span><span style="color: #0000ff;">="com.bravestarr.provider.personprovider"</span><span style="color: #0000ff;">/&gt;</span><span style="color: #000000;">
+         ...
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">application</span><span style="color: #0000ff;">&gt;</span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p align="left">关于四大基本组件的一个总结：</p>
+<p align="left">1&gt;&nbsp;&nbsp;&nbsp; 4大组件的注册</p>
+<p align="left">4大基本组件都需要注册才能使用,每个Activity、service、Content Provider内容提供者都需要在AndroidManifest文件中进行配置AndroidManifest文件中未进行声明的activity、服务以及内容提供者将不为系统所见，从而也就不可用，而BroadcastReceive广播接收者的注册分静态注册（在AndroidManifest文件中进行配置）和通过代码动态创建并以调用Context.registerReceiver()的方式注册至系统。需要注意的是在AndroidManifest文件中进行配置的广播接收者会随系统的启动而一直处于活跃状态,只要接收到感兴趣的广播就会触发（即使程序未运行）</p>
+<p align="left">AndroidManifest文件中进行注册格式如下：</p>
+<p align="left">&lt;activity&gt;元素的name 属性指定了实现了这个activity 的Activity 的子类。icon 和label 属性指向了包含展示给用户的此activity 的图标和标签的资源文件。</p>
+<p align="left">&lt;service&gt; 元素用于声明服务</p>
+<p align="left">&lt;receiver&gt; 元素用于声明广播接收器</p>
+<p align="left">&lt;provider&gt; 元素用于声明内容提供者</p>
+<p align="left">2&gt;&nbsp;&nbsp; 4大组件的激活</p>
+<p align="left">• 容提供者的激活：当接收到ContentResolver 发出的请求后，内容提供者被激活。而其它三种组件──activity、服务和广播接收器被一种叫做intent 的异步消息所激活</p>
+<p align="left">• Activity的激活通过传递一个Intent 对象至Context.startActivity()或Activity.startActivityForResult()以载入（或指定新工作给）一个activity。相应的activity 可以通过调用getIntent() 方法来查看激活它的intent。如果它期望它所启动的那个activity 返回一个结果，它会以调用startActivityForResult()来取代startActivity()。比如说，如果它启动了另外一个Activity 以使用户挑选一张照片，它也许想知道哪张照片被选中了。结果将会被封装在一个Intent 对象中，并传递给发出调用的activity 的onActivityResult() 方法。</p>
+<p align="left">• 服务的激活可以通过传递一个Intent 对象至Context.startService()或Context.bindService()前者Android 调用服务的onStart()方法并将Intent 对象传递给它，后者Android 调用服务的onBind()方法将这个Intent 对象传递给它</p>
+<p align="left">• 发送广播可以通过传递一个Intent 对象至给Context.sendBroadcast() 、</p>
+<p align="left">Context.sendOrderedBroadcast()或Context.sendStickyBroadcast()Android 会调用所有对此广播有兴趣的广播接收器的onReceive()方法，将intent 传递给它们</p>
+<p align="left">3&gt;&nbsp;&nbsp; 四大组件的关闭</p>
+<p align="left">内容提供者仅在响应ContentResolver 提出请求的时候激活。而一个广播接收器仅在响应广播信息的时候激活。所以，没有必要去显式的关闭这些组件。</p>
+<p align="left">Activity关闭：可以通过调用它的finish()方法来关闭一个activity</p>
+<p>服务关闭：对于通过startService()方法启动的服务要调用Context.stopService()方法关闭服务，使用bindService()方法启动的服务要调用Contex.unbindService ()方法关闭服务</p>
+<p align="left">二:四大组件的生命周期</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;介绍生命周期之前，先提一下任务的概念</p>
+<p align="left">任务其实就是activity 的栈它由一个或多个Activity组成的共同完成一个完整的用户体验， 换句话说任务就是” 应用程序” （可以是一个也可以是多个，比如假设你想让用户看到某个地方的街道地图。而已经存在一个具有此功能的activity 了，那么你的activity 所需要做的工作就是把请求信息放到一个Intent 对象里面，并把它传递给startActivity()。于是地图浏览器就会显示那个地图。而当用户按下BACK 键的时候，你的activity 又会再一次的显示在屏幕上，此时任务是由2个应用程序中的相关activity组成的）栈底的是启动整个任务的Activity，栈顶的是当前运行的用户可以交互的Activity，当一个activity 启动另外一个的时候，新的activity 就被压入栈，并成为当前运行的activity。而前一个activity 仍保持在栈之中。当用户按下BACK 键的时候，当前activity 出栈，而前一个恢复为当前运行的activity。栈中保存的其实是对象，栈中的Activity 永远不会重排，只会压入或弹出，所以如果发生了诸如需要多个地图浏览器的情况，就会使得一个任务中出现多个同一Activity 子类的实例同时存在。</p>
+<p align="left">任务中的所有activity 是作为一个整体进行移动的。整个的任务（即activity 栈）可以移到前台，或退至后台。举个例子说，比如当前任务在栈中存有四个activity──三个在当前activity 之下。当用户按下HOME 键的时候，回到了应用程序加载器，然后选择了一个新的应用程序（也就是一个新任务）。则当前任务遁入后台，而新任务的根activity 显示出来。然后，过了一小会儿，用户再次回到了应用程序加载器而又选择了前一个应用程序（上一个任务）。于是那个任务，带着它栈中所有的四个activity，再一次的到了前台。当用户按下BACK 键的时候，屏幕不会显示出用户刚才离开的activity（上一个任务的根</p>
+<p align="left">activity）。取而代之，当前任务的栈中最上面的activity 被弹出，而同一任务中的上一个activity 显示了出来。</p>
+<p align="left">Activity栈：先进后出规则</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/2012050219045859.jpg" alt=""></p>
+<p align="left">Android系统是一个多任务(Multi-Task)的操作系统，可以在用手机听音乐的同时，也执行其他多个程序。每多执行一个应用程序，就会多耗费一些系统内存，当同时执行的程序过多，或是关闭的程序没有正确释放掉内存，系统就会觉得越来越慢，甚至不稳定。</p>
+<p align="left">为了解决这个问题， Android 引入了一个新的机制-- 生命周期(Life Cycle)。</p>
+<p align="left">Android 应用程序的生命周期是由Android 框架进行管理，而不是由应用程序直接控</p>
+<p align="left">制。通常，每一个应用程序（入口一般会是一个Activity 的onCreate 方法），都会产生</p>
+<p align="left">一个进程(Process)。当系统内存即将不足的时候，会依照优先级自动进行进程(process)的回收。不管是使用者或开发者， 都无法确定的应用程序何时会被回收。所以为了很好的防止数据丢失和其他问题，了解生命周期很重要。</p>
+<p align="left"><span style="color: #ff0000;">Activity生命周期</span>：</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/2012050219053256.jpg" alt=""></p>
+<p align="center">图3.1activity生命周期图</p>
+<p align="left">Activity整个生命周期的4种状态、7个重要方法和3个嵌套循环</p>
+<p align="left">1&gt;&nbsp;&nbsp;&nbsp;四种状态</p>
+<ol>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;活动（Active/Running）状态</li>
+</ol>
+<p align="left">当Activity运行在屏幕前台(处于当前任务活动栈的最上面),此时它获取了焦点能响应用户的操作,属于运行状态，同一个时刻只会有一个Activity 处于活动(Active)或运行</p>
+<p align="left">(Running)状态</p>
+<ol>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;暂停(Paused)状态</li>
+</ol>
+<p align="left">当Activity失去焦点但仍对用户可见(如在它之上有另一个透明的Activity或Toast、AlertDialog等弹出窗口时)它处于暂停状态。暂停的Activity仍然是存活状态(它保留着所有的状态和成员信息并保持和窗口管理器的连接),但是当系统内存极小时可以被系统杀掉</p>
+<p>3.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;停止(Stopped)状态</p>
+<p align="left">完全被另一个Activity遮挡时处于停止状态,它仍然保留着所有的状态和成员信息。只是对用户不可见,当其他地方需要内存时它往往被系统杀掉</p>
+<p>4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;非活动（Dead）状态</p>
+<p>Activity 尚未被启动、已经被手动终止，或已经被系统回收时处于非活动的状态，要手动终止Activity，可以在程序中调用"finish"方法。</p>
+<p>如果是（按根据内存不足时的回收规则）被系统回收，可能是因为内存不足了</p>
+<p align="left">内存不足时，Dalvak 虚拟机会根据其内存回收规则来回收内存：</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1. 先回收与其他Activity 或Service/Intent Receiver 无关的进程(即优先回收独</p>
+<p align="left">立的Activity)因此建议,我们的一些(耗时)后台操作，最好是作成Service的形式</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.不可见(处于Stopped状态的)Activity</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.Service进程(除非真的没有内存可用时会被销毁)</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.非活动的可见的(Paused状态的)Activity</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;5.当前正在运行（Active/Running状态的）Activity</p>
+<p>&nbsp;</p>
+<p align="left">2&gt;&nbsp;&nbsp;7个重要方法,当Activity从一种状态进入另一状态时系统会自动调用下面相应的方</p>
+<p align="left">法来通知用户这种变化</p>
+<p>当Activity第一次被实例化的时候系统会调用,</p>
+<p>整个生命周期只调用1次这个方法</p>
+<p>通常用于初始化设置: 1、为Activity设置所要使用的布局文件2、为按钮绑定监听器等静态的设置操作</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onCreate(Bundle savedInstanceState);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>当Activity可见未获得用户焦点不能交互时系统会调用</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onStart();</p>
+<p>&nbsp;</p>
+<p>当Activity已经停止然后重新被启动时系统会调用</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onRestart();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p align="left">当Activity可见且获得用户焦点能交互时系统会调用</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onResume();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p align="left">当系统启动另外一个新的Activity时,在新Activity启动之前被系统调用保存现有的Activity中的持久数据、停止动画等,这个实现方法必须非常快。当系统而不是用户自己出于回收内存时，关闭了activity 之后。用户会期望当他再次回到这个activity 的时候，它仍保持着上次离开时的样子。此时用到了onSaveInstanceState()，方法onSaveInstanceState()用来保存Activity被杀之前的状态,在onPause()之前被触发,当系统为了节省内存销毁了Activity(用户本不想销毁)时就需要重写这个方法了,当此Activity再次被实例化时会通过onCreate(Bundle savedInstanceState)将已经保存的临时状态数据传入因为onSaveInstanceState()方法不总是被调用,触发条件为(按下HOME键,按下电源按键关闭屏幕,横竖屏切换情况下),你应该仅重写onSaveInstanceState()来记录activity的临时状态，而不是持久的数据。应该使用onPause()来存储持久数据。</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onPause();</p>
+<p align="left">&nbsp;</p>
+<p align="left">当Activity被新的Activity完全覆盖不可见时被系统调用</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onStop();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p align="left">当Activity(用户调用finish()或系统由于内存不足)被系统销毁杀掉时系统调用,（整个生命周期只调用1次）用来释放onCreate ()方法中创建的资源,如结束线程等</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onDestroy();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p align="left">3&gt;&nbsp;&nbsp;3个嵌套循环</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.Activity完整的生命周期:从第一次调用onCreate()开始直到调用onDestroy()结束</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.Activity的可视生命周期:从调用onStart()到相应的调用onStop()</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在这两个方法之间,可以保持显示Activity所需要的资源。如在onStart()中注册一个广播接收者监听影响你的UI的改变,在onStop() 中注销。</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.Activity的前台生命周期:从调用onResume()到相应的调用onPause()。</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;举例说明:</p>
+<p align="left">例1：有3个Acitivity,分别用One,Two(透明的),Three表示,One是应用启动时的主Activity</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;启动第一个界面Activity One时,它的次序是</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onCreate (ONE) - onStart (ONE) - onResume(ONE)</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;点"打开透明Activity"按钮时,这时走的次序是</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onPause(ONE) - onCreate(TWO) - onStart(TWO) - onResume(TWO)</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;再点back回到第一个界面,Two会被杀这时走的次序是</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onPause(TWO) - onActivityResult(ONE) - onResume(ONE) - onStop(TWO) - onDestroy(TWO)</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;点"打开全屏Activity"按钮时,这时走的次序是</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onPause(ONE) - onCreate(Three) - onStart(Three) - onResume(Three) - onStop(ONE)</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;再点back回到第一个界面,Three会被杀这时走的次序是</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onPause(Three) - onActivityResult(ONE) - onRestart(ONE) - onStart(ONE)- onResume(ONE) - onStop(Three) - onDestroy(Three)</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;再点back退出应用时,它的次序是</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;onPause(ONE) - onStop(ONE) - onDestroy(ONE)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p align="left">&nbsp;</p>
+<p align="left">例2：横竖屏切换时候Activity的生命周期</p>
+<p>他切换时具体的生命周期是怎么样的：</p>
+<p>1、新建一个Activity，并把各个生命周期打印出来</p>
+<p>2、运行Activity，得到如下信息</p>
+<p>onCreate--&gt;<br>onStart--&gt;<br>onResume--&gt;</p>
+<p>3、按crtl+f12切换成横屏时</p>
+<p>onSaveInstanceState--&gt;<br>onPause--&gt;<br>onStop--&gt;<br>onDestroy--&gt;<br>onCreate--&gt;<br>onStart--&gt;<br>onRestoreInstanceState--&gt;<br>onResume--&gt;</p>
+<p>4、再按crtl+f12切换成竖屏时，发现打印了两次相同的log</p>
+<p>onSaveInstanceState--&gt;<br>onPause--&gt;<br>onStop--&gt;<br>onDestroy--&gt;<br>onCreate--&gt;<br>onStart--&gt;<br>onRestoreInstanceState--&gt;<br>onResume--&gt;<br>onSaveInstanceState--&gt;<br>onPause--&gt;<br>onStop--&gt;<br>onDestroy--&gt;<br>onCreate--&gt;<br>onStart--&gt;<br>onRestoreInstanceState--&gt;<br>onResume--&gt;</p>
+<p>5、修改AndroidManifest.xml，把该Activity添加android:configChanges="orientation"，执行步骤3</p>
+<p>onSaveInstanceState--&gt;<br>onPause--&gt;<br>onStop--&gt;<br>onDestroy--&gt;<br>onCreate--&gt;<br>onStart--&gt;<br>onRestoreInstanceState--&gt;<br>onResume--&gt;</p>
+<p>6、再执行步骤4，发现不会再打印相同信息，但多打印了一行onConfigChanged</p>
+<p>onSaveInstanceState--&gt;<br>onPause--&gt;<br>onStop--&gt;<br>onDestroy--&gt;<br>onCreate--&gt;<br>onStart--&gt;<br>onRestoreInstanceState--&gt;<br>onResume--&gt;<br>onConfigurationChanged--&gt;</p>
+<p>7、把步骤5的android:configChanges="orientation" 改成 android:configChanges="orientation|keyboardHidden"，执行步骤3，就只打印onConfigChanged</p>
+<p>onConfigurationChanged--&gt;</p>
+<p>8、执行步骤4</p>
+<p>onConfigurationChanged--&gt;<br>onConfigurationChanged--&gt;</p>
+<p>&nbsp;总结：</p>
+<p>1、不设置Activity的android:configChanges时，切屏会重新调用各个生命周期，切横屏时会执行一次，切竖屏时会执行两次</p>
+<p>2、设置Activity的android:configChanges="orientation"时，切屏还是会重新调用各个生命周期，切横、竖屏时只会执行一次</p>
+<p>3、设置Activity的android:configChanges="orientation|keyboardHidden"时，切屏不会重新调用各个生命周期，只会执行onConfigurationChanged方法</p>
+<p>&nbsp;<br>总结一下整个Activity的生命周期</p>
+<p>补充一点，当前Activity产生事件弹出Toast和AlertDialog的时候Activity的生命周期不会有改变</p>
+<p align="left">Activity运行时按下HOME键(跟被完全覆盖是一样的)：onSaveInstanceState --&gt; onPause --&gt; onStop，再次进入激活状态时：&nbsp;onRestart --&gt;onStart---&gt;onResume</p>
+<p><span style="color: #ff0000;">BroadcastReceive广播接收器生命周期</span>：</p>
+<p>生命周期只有十秒左右，如果在 onReceive() 内做超过十秒内的事情，就会报ANR(Application No Response) 程序无响应的错误信息</p>
+<p>它的生命周期为从回调onReceive()方法开始到该方法返回结果后结束</p>
+<p align="left"><span style="color: #ff0000;">Service服务生命周期</span>：</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/2012050219083160.jpg" alt=""></p>
+<p align="center">图3.2service生命周期图</p>
+<p>Service完整的生命周期:从调用onCreate()开始直到调用onDestroy()结束</p>
+<p align="left">Service有两种使用方法：</p>
+<p align="left">1&gt;以调用Context.startService()启动，而以调用Context.stopService()结束</p>
+<p align="left">2&gt;以调用Context.bindService()方法建立，以调用Context.unbindService()关闭</p>
+<p align="left">service重要的生命周期方法</p>
+<p align="left">当用户调用startService （）或bindService（）时，Service第一次被实例化的时候系统会调用,整个生命周期只调用1次这个方法，通常用于初始化设置。注意：多次调用startService（）或bindService（）方法不会多次触发onCreate（）方法</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">void</span> onCreate()</pre>
+</div>
+<p>当用户调用stopService()或unbindService（）来停止服务时被系统调用,（整个生命周期只调用1次）用来释放onCreate()方法中创建的资源</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">void</span> onDestroy()</pre>
+</div>
+<p align="left">通过startService()方法启动的服务</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;初始化结束后系统会调用该方法，用于处理传递给startService()的Intent对象。如音乐服务会打开Intent 来探明将要播放哪首音乐，并开始播放。注意：多次调用startService（）方法会多次触发onStart（）方法</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">void</span> onStart(Intent intent)</pre>
+</div>
+<p align="left">通过bindService ()方法启动的服务</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;初始化结束后系统会调用该方法，用来绑定传递给bindService 的Intent 的对象。注意：多次调用bindService（）时，如果该服务已启动则不会再触发此方法</p>
+<div class="cnblogs_code">
+<pre>IBinder onBind(Intent intent)</pre>
+</div>
+<p>用户调用unbindService()时系统调用此方法，Intent 对象同样传递给该方法</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">boolean</span> onUnbind(Intent intent)</pre>
+</div>
+<p>如果有新的客户端连接至该服务，只有当旧的调用onUnbind()后，新的才会调用该方法</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">void</span> onRebind(Intent intent)</pre>
+</div>
+<p><strong>补充</strong>：onCreate(Bundle savedInstanceState)与onSaveInstanceState(Bundle savedInstanceState)配合使用，见如下代码，达到显示activity被系统杀死前的状态</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre><span style="color: #000000;">    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> onCreate(Bundle savedInstanceState) {
+        </span><span style="color: #0000ff;">super</span><span style="color: #000000;">.onCreate(savedInstanceState);
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">null</span> !=<span style="color: #000000;"> savedInstanceState) {
+            String _userid </span>= savedInstanceState.getString("StrUserId"<span style="color: #000000;">);
+            String _uid </span>= savedInstanceState.getString("StrUid"<span style="color: #000000;">);
+            String _serverid </span>= savedInstanceState.getString("StrServerId"<span style="color: #000000;">);
+            String _servername </span>= savedInstanceState.getString("StrServerName"<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">int</span> _rate = savedInstanceState.getInt("StrRate"<span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">updateUserId(_userid);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">updateUId(_uid);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">updateServerId(_serverid);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">updateUserServer(_servername);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">updateRate(_rate);</span>
+<span style="color: #000000;">        }
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> onSaveInstanceState(Bundle savedInstanceState) {
+        </span><span style="color: #0000ff;">super</span><span style="color: #000000;">.onSaveInstanceState(savedInstanceState);
+        savedInstanceState.putString(</span>"StrUserId"<span style="color: #000000;">, getUserId());
+        savedInstanceState.putString(</span>"StrUid"<span style="color: #000000;">, getUId());
+        savedInstanceState.putString(</span>"StrServerId"<span style="color: #000000;">, getServerId());
+        savedInstanceState.putString(</span>"StrServerName"<span style="color: #000000;">, getServerName());
+        savedInstanceState.putInt(</span>"StrRate"<span style="color: #000000;">, getRate());
+    }</span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p><strong>引发activity摧毁和重建的其他情形</strong></p>
+<p>除了系统处于内存不足的原因会摧毁activity之外, 某些系统设置的改变也会导致activity的摧毁和重建. 例如改变屏幕方向(见上例), 改变设备语言设定, 键盘弹出等.</p>
+<p>&nbsp;</p></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="BlogPostCategory">分类: <a href="http://www.cnblogs.com/bravestarrhu/category/377032.html" target="_blank">android天下</a></div>
+<div id="EntryTag">标签: <a href="http://www.cnblogs.com/bravestarrhu/tag/Android%E5%9B%9B%E5%A4%A7%E5%9F%BA%E6%9C%AC%E7%BB%84%E4%BB%B6%E4%BB%8B%E7%BB%8D%E4%B8%8E%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">Android四大基本组件介绍与生命周期</a></div>
+<div id="blog_post_info"><div id="green_channel">
+        <a href="javascript:void(0);" id="green_channel_digg" onclick="DiggIt(2479461,cb_blogId,1);green_channel_success(this,&#39;谢谢推荐！&#39;);">好文要顶</a>
+            <a id="green_channel_follow" onclick="follow(&#39;0a27fa13-978e-e111-aa3f-842b2b196315&#39;);" href="javascript:void(0);">关注我</a>
+    <a id="green_channel_favorite" onclick="AddToWz(cb_entryId);return false;" href="javascript:void(0);">收藏该文</a>
+    <a id="green_channel_weibo" href="javascript:void(0);" title="分享至新浪微博" onclick="ShareToTsina()"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/icon_weibo_24.png" alt=""></a>
+    <a id="green_channel_wechat" href="javascript:void(0);" title="分享至微信" onclick="shareOnWechat()"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/wechat.png" alt=""></a>
+</div>
+<div id="author_profile">
+    <div id="author_profile_info" class="author_profile_info">
+            <a href="http://home.cnblogs.com/u/bravestarrhu/" target="_blank"><img src="./Android四大基本组件介绍与生命周期 - bravestarr - 博客园_files/u402670.jpg" class="author_avatar" alt=""></a>
+        <div id="author_profile_detail" class="author_profile_info">
+            <a href="http://home.cnblogs.com/u/bravestarrhu/">bravestarr</a><br>
+            <a href="http://home.cnblogs.com/u/bravestarrhu/followees">关注 - 4</a><br>
+            <a href="http://home.cnblogs.com/u/bravestarrhu/followers">粉丝 - 168</a>
+        </div>
+    </div>
+    <div class="clear"></div>
+    <div id="author_profile_honor"></div>
+    <div id="author_profile_follow">
+                <a href="javascript:void(0);" onclick="follow(&#39;0a27fa13-978e-e111-aa3f-842b2b196315&#39;);return false;">+加关注</a>
+    </div>
+</div>
+<div id="div_digg">
+    <div class="diggit" onclick="votePost(2479461,&#39;Digg&#39;)">
+        <span class="diggnum" id="digg_count">73</span>
+    </div>
+    <div class="buryit" onclick="votePost(2479461,&#39;Bury&#39;)">
+        <span class="burynum" id="bury_count">0</span>
+    </div>
+    <div class="clear"></div>
+    <div class="diggword" id="digg_tips">
+    </div>
+</div>
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479449.html" class="p_n_p_prefix">« </a> 上一篇：<a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479449.html" title="发布于2012-05-02 18:51">Struts+Tomcat搭建</a><br><a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/03/2481265.html" class="p_n_p_prefix">» </a> 下一篇：<a href="http://www.cnblogs.com/bravestarrhu/archive/2012/05/03/2481265.html" title="发布于2012-05-03 20:32">常用控件应用之文本框（TextView）特效</a><br></div>
+</div>
+
+
+	<div class="postDesc">posted on <span id="post-date">2012-05-02 19:15</span> <a href="http://www.cnblogs.com/bravestarrhu/">bravestarr</a> 阅读(<span id="post_view_count">402620</span>) 评论(<span id="post_comment_count">59</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=2479461" rel="nofollow">编辑</a> <a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#" onclick="AddToWz(2479461);return false;">收藏</a></div>
+</div>
+<script type="text/javascript">var allowComments=true,cb_blogId=115891,cb_entryId=2479461,cb_blogApp=currentBlogApp,cb_blogUserGuid='0a27fa13-978e-e111-aa3f-842b2b196315',cb_entryCreatedDate='2012/5/2 19:15:00';loadViewCount(cb_entryId);var cb_postType=1;</script>
+
+</div><a name="!comments"></a><div id="blog-comments-placeholder"><div id="comments_pager_top"><div class="pager"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#!comments" onclick="commentManager.renderComments(1,50);return false;">&lt; Prev</a><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#!comments" onclick="commentManager.renderComments(1,50);return false;">1</a><span class="current">2</span></div></div>
+<!--done-->
+<a name="feedback"></a>
+<div class="feedback">
+	<div class="feedbackTitle">
+		Feedback
+	</div>
+	<div class="feedbackNoItems"></div>
+	
+	
+			<div class="feedbackItem">
+				<div class="feedbackListTitle"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3256795" class="layer">#51楼</a><a name="3256795" id="comment_anchor_3256795"></a></div>
+				<div class="feedbackListSubtitle">
+					 <span class="comment_date">2015-08-29 22:42</span> | <a id="a_comment_author_3256795" href="http://home.cnblogs.com/u/804749/" target="_blank">candylie</a> <a href="http://msg.cnblogs.com/send/candylie" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+				</div>
+				<div id="comment_body_3256795" class="blog_comment_body">写的好详细不错</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3256795,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3256795,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			</div>
+		
+			<div class="feedbackItem">
+				<div class="feedbackListTitle"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3265174" class="layer">#52楼</a><a name="3265174" id="comment_anchor_3265174"></a></div>
+				<div class="feedbackListSubtitle">
+					 <span class="comment_date">2015-09-11 20:21</span> | <a id="a_comment_author_3265174" href="http://home.cnblogs.com/u/411716/" target="_blank">序友</a> <a href="http://msg.cnblogs.com/send/%E5%BA%8F%E5%8F%8B" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+				</div>
+				<div id="comment_body_3265174" class="blog_comment_body">写的真好，很详细，具体，而且结合了例子，解释的非常具有逻辑性，感谢分享。好文要顶。</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3265174,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3265174,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			</div>
+		
+			<div class="feedbackItem">
+				<div class="feedbackListTitle"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3304276" class="layer">#53楼</a><a name="3304276" id="comment_anchor_3304276"></a></div>
+				<div class="feedbackListSubtitle">
+					 <span class="comment_date">2015-11-12 10:05</span> | <a id="a_comment_author_3304276" href="http://home.cnblogs.com/u/835741/" target="_blank">勿扰</a> <a href="http://msg.cnblogs.com/send/%E5%8B%BF%E6%89%B0" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+				</div>
+				<div id="comment_body_3304276" class="blog_comment_body">很详细，谢谢你的分享</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3304276,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3304276,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			</div>
+		
+			<div class="feedbackItem">
+				<div class="feedbackListTitle"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3304290" class="layer">#54楼</a><a name="3304290" id="comment_anchor_3304290"></a></div>
+				<div class="feedbackListSubtitle">
+					 <span class="comment_date">2015-11-12 10:16</span> | <a id="a_comment_author_3304290" href="http://home.cnblogs.com/u/835762/" target="_blank">二货的世界不解释</a> <a href="http://msg.cnblogs.com/send/%E4%BA%8C%E8%B4%A7%E7%9A%84%E4%B8%96%E7%95%8C%E4%B8%8D%E8%A7%A3%E9%87%8A" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+				</div>
+				<div id="comment_body_3304290" class="blog_comment_body">写的很好，谢谢分享</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3304290,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3304290,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			</div>
+		
+			<div class="feedbackItem">
+				<div class="feedbackListTitle"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3367164" class="layer">#55楼</a><a name="3367164" id="comment_anchor_3367164"></a></div>
+				<div class="feedbackListSubtitle">
+					 <span class="comment_date">2016-02-26 11:11</span> | <a id="a_comment_author_3367164" href="http://home.cnblogs.com/u/341876/" target="_blank">najiutan</a> <a href="http://msg.cnblogs.com/send/najiutan" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+				</div>
+				<div id="comment_body_3367164" class="blog_comment_body">写这么多看的想睡觉，我是新手，给博主提个建议，我觉得最好的讲解方式就是直接上例子，然后根据例子来展开讲解，不然真的很多都搞不懂</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3367164,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3367164,&#39;Bury&#39;,this)">反对(4)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			</div>
+		
+			<div class="feedbackItem">
+				<div class="feedbackListTitle"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3384872" class="layer">#56楼</a><a name="3384872" id="comment_anchor_3384872"></a></div>
+				<div class="feedbackListSubtitle">
+					 <span class="comment_date">2016-03-18 16:05</span> | <a id="a_comment_author_3384872" href="http://home.cnblogs.com/u/915337/" target="_blank">pon_3</a> <a href="http://msg.cnblogs.com/send/pon_3" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+				</div>
+				<div id="comment_body_3384872" class="blog_comment_body">赞一个~</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3384872,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3384872,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			</div>
+		
+			<div class="feedbackItem">
+				<div class="feedbackListTitle"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3472743" class="layer">#57楼</a><a name="3472743" id="comment_anchor_3472743"></a></div>
+				<div class="feedbackListSubtitle">
+					 <span class="comment_date">2016-07-19 16:10</span> | <a id="a_comment_author_3472743" href="http://www.cnblogs.com/wolverine/" target="_blank">中洲大帝</a> <a href="http://msg.cnblogs.com/send/%E4%B8%AD%E6%B4%B2%E5%A4%A7%E5%B8%9D" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+				</div>
+				<div id="comment_body_3472743" class="blog_comment_body">不错。楼主说的很详细</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3472743,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3472743,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			</div>
+		
+			<div class="feedbackItem">
+				<div class="feedbackListTitle"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3505933" class="layer">#58楼</a><a name="3505933" id="comment_anchor_3505933"></a></div>
+				<div class="feedbackListSubtitle">
+					 <span class="comment_date">2016-09-08 11:53</span> | <a id="a_comment_author_3505933" href="http://www.cnblogs.com/ikillmeba/" target="_blank">专注一点</a> <a href="http://msg.cnblogs.com/send/%E4%B8%93%E6%B3%A8%E4%B8%80%E7%82%B9" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+				</div>
+				<div id="comment_body_3505933" class="blog_comment_body">要自己敲敲代码，验证一下，讲的非常详细，如果可以把几种组件组合起来的应用场景介绍一下就更不错了</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3505933,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3505933,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			</div>
+		
+			<div class="feedbackItem">
+				<div class="feedbackListTitle"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#3581137" class="layer">#59楼</a><a name="3581137" id="comment_anchor_3581137"></a><span id="comment-maxId" style="display:none;">3581137</span><span id="comment-maxDate" style="display:none;">2016/12/15 8:55:20</span></div>
+				<div class="feedbackListSubtitle">
+					 <span class="comment_date">2016-12-15 08:55</span> | <a id="a_comment_author_3581137" href="http://home.cnblogs.com/u/1080966/" target="_blank">Mosawei</a> <a href="http://msg.cnblogs.com/send/Mosawei" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+				</div>
+				<div id="comment_body_3581137" class="blog_comment_body">写的很详细，不过在ContentProvider的重写方法的注释是不是写错了？？</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3581137,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3581137,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			</div>
+		
+</div>
+
+
+<div id="comments_pager_bottom"><div class="pager"><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#!comments" onclick="commentManager.renderComments(1,50);return false;">&lt; Prev</a><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#!comments" onclick="commentManager.renderComments(1,50);return false;">1</a><span class="current">2</span></div></div></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" onclick="return RefreshCommentList();" id="lnk_RefreshComments" runat="server" clientidmode="Static">刷新评论</a><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#" onclick="return RefreshPage();">刷新页面</a><a href="https://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html#top">返回顶部</a></div>
+<div id="comment_form_container"><div class="login_tips">注册用户登录后才能发表评论，请 <a rel="nofollow" href="javascript:void(0);" class="underline" onclick="return login(&#39;commentform&#39;);">登录</a> 或 <a rel="nofollow" href="javascript:void(0);" class="underline" onclick="return register();">注册</a>，<a href="http://www.cnblogs.com/">访问</a>网站首页。</div></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="ad_t2"></div>
+<div id="opt_under_post"></div>
+<div id="cnblogs_c1" class="c_ad_block"></div>
+<div id="under_post_news"><div class="itnews c_ad_block"><b>最新IT新闻</b>:<br> ·  <a href="http://news.cnblogs.com/n/582967/" target="_blank">作业帮删除98%老师来自名校等内容 1对1师资曾遭质疑</a><br> ·  <a href="http://news.cnblogs.com/n/582952/" target="_blank">Microsoft开源用于VS Code的Java Debugger</a><br> ·  <a href="http://news.cnblogs.com/n/582960/" target="_blank">微软申请一批黑科技专利：大脑意念控制PC</a><br> ·  <a href="http://news.cnblogs.com/n/582955/" target="_blank">法院判决：电商虚假降价促销被判三倍商品价格赔偿</a><br> ·  <a href="http://news.cnblogs.com/n/582954/" target="_blank">199号段今日起正式问世 各地开放申请时间并不同</a><br>» <a href="http://news.cnblogs.com/" title="IT新闻" target="_blank">更多新闻...</a></div></div>
+<div id="cnblogs_c2" class="c_ad_block"></div>
+<div id="under_post_kb"><div class="itnews c_ad_block" id="kb_block"><b>最新知识库文章</b>:<br><div id="kb_recent"> ·  <a href="http://kb.cnblogs.com/page/112506/" target="_blank">大道至简，职场上做人做事做管理</a><br> ·  <a href="http://kb.cnblogs.com/page/563790/" target="_blank">关于编程，你的练习是不是有效的？</a><br> ·  <a href="http://kb.cnblogs.com/page/581467/" target="_blank">改善程序员生活质量的 3+10 习惯</a><br> ·  <a href="http://kb.cnblogs.com/page/568841/" target="_blank">NASA的10条代码编写原则</a><br> ·  <a href="http://kb.cnblogs.com/page/578502/" target="_blank">为什么你参加了那么多培训，却依然表现平平？</a><br></div>» <a href="http://kb.cnblogs.com/" target="_blank">更多知识库文章...</a></div></div>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+    fixPostBody();
+    setTimeout(function () { incrementViewCount(cb_entryId); }, 50);
+    deliverAdT2();
+    deliverAdC1();
+    deliverAdC2();    
+    loadNewsAndKb();
+    loadBlogSignature();
+    LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+    GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate, cb_postType);
+    loadOptUnderPost();
+    GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);   
+</script>
+</div>
+
+
+    </div>
+</div>
+
+<!--done-->
+<div class="footer">
+	Powered by: 
+	<br>
+	
+	<a id="Footer1_Hyperlink3" name="Hyperlink1" href="http://www.cnblogs.com/" style="font-family:Verdana;font-size:12px;">博客园</a>
+	<br>
+	Copyright ©2017 bravestarr
+</div>
+
+
+
+
+</body></html>

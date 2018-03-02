@@ -1,0 +1,1135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- saved from url=(0061)http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html -->
+<html version="g42dymwpi--nx"><head id="Head"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>
+	Java：单例模式的七种写法  - 问征夫以前路 - BlogJava
+</title><meta id="metaKeywords" name="keywords" content="Java：单例模式的七种写法 "><link type="text/css" rel="stylesheet" href="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/common.css"><link id="MainCss" type="text/css" rel="stylesheet" href="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/style.css"><link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="http://www.blogjava.net/kenzhh/rss.aspx"><style type="text/css" abt="234"></style><script>//console.log('a')
+</script><script>doAdblock();
+function doAdblock(){
+    (function() {
+        function A() {}
+        A.prototype = {
+            rules: {
+                'pps_pps': {
+                    'find': /^http:\/\/www\.iqiyi\.com\/player\/cupid\/common\/pps_flvplay_s\.swf/,
+                    'replace': 'http://swf.adtchrome.com/pps_20140420.swf'
+                },
+                '17173_in':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/PreloaderFile(Customer)?\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173_in_20150522.swf"
+                },
+                '17173_out':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/PreloaderFileFirstpage\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173_out_20150522.swf"
+                },
+                '17173_live':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/Player_stream(_firstpage)?\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173_stream_20150522.swf"
+                },
+                '17173_live_out':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/Player_stream_(custom)?Out\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173.out.Live.swf"
+                }
+            },
+            _done: null,
+            get done() {
+                if(!this._done) {
+                    this._done = new Array();
+                }
+                return this._done;
+            },
+            addAnimations: function() {
+                var style = document.createElement('style');
+                style.type = 'text/css';
+                style.innerHTML = 'object,embed{\
+                -webkit-animation-duration:.001s;-webkit-animation-name:playerInserted;\
+                -ms-animation-duration:.001s;-ms-animation-name:playerInserted;\
+                -o-animation-duration:.001s;-o-animation-name:playerInserted;\
+                animation-duration:.001s;animation-name:playerInserted;}\
+                @-webkit-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}\
+                @-ms-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}\
+                @-o-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}\
+                @keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}';
+                document.getElementsByTagName('head')[0].appendChild(style);
+            },
+            animationsHandler: function(e) {
+                if(e.animationName === 'playerInserted') {
+                    this.replace(e.target);
+                }
+            },
+            replace: function(elem) {
+                if (/http:\/\/v.youku.com\/v_show\/.*/.test(window.location.href)){
+                    var tag = document.getElementById("playerBox").getAttribute("player")
+                    if (tag == "adt"){
+                        console.log("adt adv")
+                        return;
+                    }
+                }
+                if(this.done.indexOf(elem) != -1) return;
+                this.done.push(elem);
+                var player = elem.data || elem.src;
+                if(!player) return;
+                var i, find, replace = false;
+                for(i in this.rules) {
+                    find = this.rules[i]['find'];
+                    if(find.test(player)) {
+                        replace = this.rules[i]['replace'];
+                        if('function' === typeof this.rules[i]['preHandle']) {
+                            this.rules[i]['preHandle'].bind(this, elem, find, replace, player)();
+                        }else{
+                            this.reallyReplace.bind(this, elem, find, replace)();
+                        }
+                        break;
+                    }
+                }
+            },
+            reallyReplace: function(elem, find, replace) {
+                elem.data && (elem.data = elem.data.replace(find, replace)) || elem.src && ((elem.src = elem.src.replace(find, replace)) && (elem.style.display = 'block'));
+                var b = elem.querySelector("param[name='movie']");
+                this.reloadPlugin(elem);
+            },
+            reloadPlugin: function(elem) {
+                var nextSibling = elem.nextSibling;
+                var parentNode = elem.parentNode;
+                parentNode.removeChild(elem);
+                var newElem = elem.cloneNode(true);
+                this.done.push(newElem);
+                if(nextSibling) {
+                    parentNode.insertBefore(newElem, nextSibling);
+                } else {
+                    parentNode.appendChild(newElem);
+                }
+            },
+            init: function() {
+                var handler = this.animationsHandler.bind(this);
+                document.body.addEventListener('webkitAnimationStart', handler, false);
+                document.body.addEventListener('msAnimationStart', handler, false);
+                document.body.addEventListener('oAnimationStart', handler, false);
+                document.body.addEventListener('animationstart', handler, false);
+                this.addAnimations();
+            }
+        };
+        new A().init();
+    })();
+}
+// 20140730
+(function cnbeta() {
+    if (document.URL.indexOf('cnbeta.com') >= 0) {
+        var elms = document.body.querySelectorAll("p>embed");
+        Array.prototype.forEach.call(elms, function(elm) {
+            elm.style.marginLeft = "0px";
+        });
+    }
+})();
+//baidu
+if(document.URL.indexOf('www.baidu.com') >= 0){
+    if(document && document.getElementsByTagName && document.getElementById && document.body){
+        var aa = function(){
+            var all = document.body.querySelectorAll("#content_left div,#content_left table");
+            for(var i = 0; i < all.length; i++){
+                if(/display:\s?(table|block)\s!important/.test(all[i].getAttribute("style"))){all[i].style.display= "none";all[i].style.visibility='hidden';}
+            }
+            all = document.body.querySelectorAll('.result.c-container[id="1"]');
+            //if(all.length == 1) return;
+            for(var i = 0; i < all.length; i++){
+                if(all[i].innerHTML && all[i].innerHTML.indexOf('广告')>-1){
+                    all[i].style.display= "none";all[i].style.visibility='hidden';
+                }
+            }
+        }
+        aa();
+        document.getElementById('wrapper_wrapper').addEventListener('DOMSubtreeModified',aa)
+    };
+}
+// 20140922
+(function kill_360() {
+    if (document.URL.indexOf('so.com') >= 0) {
+        document.getElementById("e_idea_pp").style.display = none;
+    }
+})();
+if (document.URL.indexOf("tv.sohu.com") >= 0){
+    if (document.cookie.indexOf("fee_status=true")==-1){document.cookie='fee_status=true'};
+}
+if (document.URL.indexOf("56.com") >= 0){
+    if (document.cookie.indexOf("fee_status=true")==-1){document.cookie='fee_status=true'};
+}
+if (document.URL.indexOf("iqiyi.com") >= 0){
+    if (document.cookie.indexOf("player_forcedType=h5_VOD")==-1){
+        document.cookie='player_forcedType=h5_VOD'
+        if(localStorage.reloadTime && Date.now() - parseInt(localStorage.reloadTime)<60000){
+            console.log('no reload')
+        }else{
+            location.reload()
+            localStorage.reloadTime = Date.now();
+        }
+    }
+}
+</script><style type="text/css">object,embed{                -webkit-animation-duration:.001s;-webkit-animation-name:playerInserted;                -ms-animation-duration:.001s;-ms-animation-name:playerInserted;                -o-animation-duration:.001s;-o-animation-name:playerInserted;                animation-duration:.001s;animation-name:playerInserted;}                @-webkit-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}                @-ms-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}                @-o-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}                @keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}</style><link rel="preload" href="https://adservice.google.com/adsid/integrator.js?domain=www.blogjava.net" as="script"><script type="text/javascript" src="https://adservice.google.com/adsid/integrator.js?domain=www.blogjava.net"></script><script src="http://pubads.g.doubleclick.net/gpt/pubads_impl_168.js" async=""></script><style id="style-1-cropbar-clipper">/* Copyright 2014 Evernote Corporation. All rights reserved. */
+.en-markup-crop-options {
+    top: 18px !important;
+    left: 50% !important;
+    margin-left: -100px !important;
+    width: 200px !important;
+    border: 2px rgba(255,255,255,.38) solid !important;
+    border-radius: 4px !important;
+}
+
+.en-markup-crop-options div div:first-of-type {
+    margin-left: 0px !important;
+}
+</style></head>
+<body>
+    <form name="Form1" method="post" action="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html" id="Form1">
+<div>
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="">
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="">
+<input type="hidden" name="__VIEWSTATE" id="
+__VIEWSTATE" value="">
+</div>
+
+<script type="text/javascript" async="" src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/ga.js"></script><script async="" type="text/javascript" src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/gpt.js"></script><script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['Form1'];
+if (!theForm) {
+    theForm = document.Form1;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/WebResource.axd" type="text/javascript"></script>
+
+<script language="JavaScript">
+									function ctlent(evt,id)
+											{
+												if(evt.ctrlKey && evt.keyCode == 13)
+												{	
+													try
+													{
+														TempSave(id);
+													}
+													catch(ex)
+													{
+													}
+													finally
+													{
+													    __doPostBack('AjaxHolder$PostComment$btnSubmit','')
+													}
+												}
+		
+												}</script>
+												<script language="JavaScript">function SetReplyAuhor(author){document.getElementById('AjaxHolder_PostComment_tbComment').value+="@"+author+"\n";document.getElementById('AjaxHolder_PostComment_tbComment').focus();return false}</script>
+<script src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/ScriptResource.axd" type="text/javascript"></script>
+<script src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/ScriptResource(1).axd" type="text/javascript"></script>
+        
+<!--done-->
+<table cellpadding="0" cellspacing="0" border="0" align="center" width="100%">
+<tbody><tr>
+	<td width="184" background="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/banner1.gif"></td>
+	<td background="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/banner.gif">
+<!--done-->
+<div class="header">
+	<div class="headerText">
+		<a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.blogjava.net/kenzhh/">问征夫以前路</a><br>
+		<span style="font-size:12px;color:#4371A6;padding-left:20;">感谢所有关心过支持过我的人，
+感谢所有恨过我嘲笑过我的人 ！</span>
+	</div>
+</div>
+</td>
+	<td width="295" background="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/banner2.gif"></td>
+</tr>
+</tbody></table>
+<div id="mylinks">
+<!--done-->
+<a id="MyLinks1_HomeLink" class="menu" href="http://www.blogjava.net/">BlogJava</a>&nbsp;&nbsp;&nbsp;<a id="MyLinks1_MyHomeLink" class="mainmenu" href="http://www.blogjava.net/kenzhh/">首页</a>&nbsp;&nbsp;&nbsp;<a id="MyLinks1_NewPostLink" class="mainmenu" href="http://www.blogjava.net/kenzhh/admin/EditPosts.aspx?opt=1">新随笔</a>&nbsp;&nbsp;&nbsp;<a id="MyLinks1_NewArticleLink" class="mainmenu" href="http://www.blogjava.net/EnterMyBlog.aspx?NewArticle=1">新文章</a>&nbsp;&nbsp;&nbsp;<a id="MyLinks1_ContactLink" accesskey="9" class="mainmenu" href="http://www.blogjava.net/kenzhh/contact.aspx?id=1">联系</a>&nbsp;&nbsp;&nbsp;<a id="MyLinks1_Syndication" class="mainmenu" href="http://www.blogjava.net/kenzhh/rss">聚合</a><a id="MyLinks1_XMLLink" href="http://www.blogjava.net/kenzhh/rss"><img src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/xml.gif" style="border-width:0px;"></a>&nbsp;&nbsp;&nbsp;<a id="MyLinks1_Admin" class="menu" href="http://www.blogjava.net/kenzhh/admin/EditPosts.aspx">管理</a>
+</div>
+<div id="mytopmenu">
+	
+		<div id="mystats">
+			
+<!--done-->
+<div class="blogStats">
+posts - 30,comments - 147,trackbacks - 0
+
+</div></div>
+	
+</div>
+<div id="leftcontent" style="display: inline;">
+	
+		<div id="leftcontentcontainer">
+			<table id="Calendar1_entryCal" class="Cal" cellspacing="0" cellpadding="0" title="日历" border="0" style="border-width:1px;border-style:solid;border-collapse:collapse;border:0px">
+	<tbody><tr><td colspan="7" style="background-color:Transparent;"><table class="CalTitle" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+		<tbody><tr><td class="CalNextPrev" style="width:15%;"><a href="javascript:__doPostBack(&#39;Calendar1$entryCal&#39;,&#39;V4780&#39;)" style="color:Black" title="转到上一个月">&lt;</a></td><td align="center" style="width:70%;">2013年3月</td><td class="CalNextPrev" align="right" style="width:15%;"><a href="javascript:__doPostBack(&#39;Calendar1$entryCal&#39;,&#39;V4839&#39;)" style="color:Black" title="转到下一个月">&gt;</a></td></tr>
+	</tbody></table></td></tr><tr><th class="CalDayHeader" align="center" abbr="日" scope="col">日</th><th class="CalDayHeader" align="center" abbr="一" scope="col">一</th><th class="CalDayHeader" align="center" abbr="二" scope="col">二</th><th class="CalDayHeader" align="center" abbr="三" scope="col">三</th><th class="CalDayHeader" align="center" abbr="四" scope="col">四</th><th class="CalDayHeader" align="center" abbr="五" scope="col">五</th><th class="CalDayHeader" align="center" abbr="六" scope="col">六</th></tr><tr><td class="CalOtherMonthDay" align="center" style="width:14%;">24</td><td class="CalOtherMonthDay" align="center" style="width:14%;">25</td><td class="CalOtherMonthDay" align="center" style="width:14%;">26</td><td class="CalOtherMonthDay" align="center" style="width:14%;">27</td><td class="CalOtherMonthDay" align="center" style="width:14%;">28</td><td align="center" style="width:14%;">1</td><td class="CalWeekendDay" align="center" style="width:14%;">2</td></tr><tr><td class="CalWeekendDay" align="center" style="width:14%;">3</td><td align="center" style="width:14%;">4</td><td align="center" style="width:14%;">5</td><td align="center" style="width:14%;">6</td><td align="center" style="width:14%;">7</td><td align="center" style="width:14%;">8</td><td class="CalWeekendDay" align="center" style="width:14%;">9</td></tr><tr><td class="CalWeekendDay" align="center" style="width:14%;">10</td><td align="center" style="width:14%;">11</td><td align="center" style="width:14%;">12</td><td align="center" style="width:14%;">13</td><td align="center" style="width:14%;">14</td><td align="center" style="width:14%;">15</td><td class="CalWeekendDay" align="center" style="width:14%;">16</td></tr><tr><td class="CalWeekendDay" align="center" style="width:14%;">17</td><td align="center" style="width:14%;">18</td><td align="center" style="width:14%;">19</td><td align="center" style="width:14%;">20</td><td align="center" style="width:14%;">21</td><td align="center" style="width:14%;">22</td><td class="CalWeekendDay" align="center" style="width:14%;">23</td></tr><tr><td class="CalWeekendDay" align="center" style="width:14%;">24</td><td align="center" style="width:14%;">25</td><td align="center" style="width:14%;">26</td><td align="center" style="width:14%;">27</td><td align="center" style="width:14%;">28</td><td align="center" style="width:14%;">29</td><td class="CalWeekendDay" align="center" style="width:14%;">30</td></tr><tr><td class="CalWeekendDay" align="center" style="width:14%;">31</td><td class="CalOtherMonthDay" align="center" style="width:14%;">1</td><td class="CalOtherMonthDay" align="center" style="width:14%;">2</td><td class="CalOtherMonthDay" align="center" style="width:14%;">3</td><td class="CalOtherMonthDay" align="center" style="width:14%;">4</td><td class="CalOtherMonthDay" align="center" style="width:14%;">5</td><td class="CalOtherMonthDay" align="center" style="width:14%;">6</td></tr>
+</tbody></table>
+<br>
+			
+			
+<h3>常用链接</h3>
+<ul>
+		<li><a id="SingleColumn1_ctl00_repeaterLinks_ctl01_lnkLinkItem" href="http://www.blogjava.net/kenzhh/MyPosts.html">我的随笔</a></li>
+	
+		<li><a id="SingleColumn1_ctl00_repeaterLinks_ctl02_lnkLinkItem" href="http://www.blogjava.net/kenzhh/MyComments.html">我的评论</a></li>
+	
+		<li><a id="SingleColumn1_ctl00_repeaterLinks_ctl03_lnkLinkItem" href="http://www.blogjava.net/kenzhh/OtherPosts.html">我的参与</a></li>
+	
+		<li><a id="SingleColumn1_ctl00_repeaterLinks_ctl04_lnkLinkItem" href="http://www.blogjava.net/kenzhh/RecentComments.html">最新评论</a></li>
+	</ul>
+<h3>留言簿<span style="font-size:11px;font-weight:normal;">(8)</span></h3>
+<ul>
+	<li>
+		<a id="SingleColumn1_ctl01_lnkMessages" href="http://www.blogjava.net/kenzhh/Contact.aspx?id=1">给我留言</a>
+	</li><li>
+		<a id="SingleColumn1_ctl01_lnkPublicMsgView" href="http://www.blogjava.net/kenzhh/default.aspx?opt=msg">查看公开留言</a>
+	</li><li>
+		<a id="SingleColumn1_ctl01_lnkPrivateMsgView" href="http://www.blogjava.net/kenzhh/admin/MyMessages.aspx">查看私人留言</a>
+	</li>
+</ul>
+
+<!--done-->
+
+		<h1 class="catListTitle">随笔档案<span style="font-size:11px;font-weight:normal">(30)</span></h1>
+		
+				<ul class="catList">
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl01_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2011/09.html">2011年9月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl02_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2009/12.html">2009年12月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl03_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2009/09.html">2009年9月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl04_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2009/07.html">2009年7月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl05_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2009/05.html">2009年5月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl06_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2008/09.html">2008年9月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl07_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2008/07.html">2008年7月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl08_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2008/06.html">2008年6月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl09_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2008/05.html">2008年5月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl10_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2008/03.html">2008年3月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl11_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2008/01.html">2008年1月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl12_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2007/12.html">2007年12月 (4)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl13_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2007/11.html">2007年11月 (4)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl14_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2007/10.html">2007年10月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl15_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2007/08.html">2007年8月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl16_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2007/07.html">2007年7月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl00_LinkList_ctl17_Link" class="listitem" href="http://www.blogjava.net/kenzhh/archive/2007/06.html">2007年6月 (3)</a></li>
+			
+				</ul>
+			
+	
+		<h1 class="catListTitle">关注的blog</h1>
+		
+				<ul class="catList">
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl01_Link" class="listitem" href="http://conjs.cn/">conjs</a><a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl01_RssLink" title="Subscribe to conjs" class="listitem" href="http://conjs.cn/"><img title="Subscribe to conjs" src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/xml(1).gif" style="border-width:0px;"></a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl02_Link" class="listitem" href="http://www.blogjava.net/siriusfx/" target="_blank">Java&amp;GIS</a><a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl02_RssLink" title="Subscribe to Java&amp;GIS" class="listitem" href="http://www.blogjava.net/siriusfx/"><img title="Subscribe to Java&amp;GIS" src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/xml(1).gif" style="border-width:0px;"></a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl03_Link" class="listitem" href="http://www.blogjava.net/magicblw" target="_blank">magicblw</a><a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl03_RssLink" title="Subscribe to magicblw" class="listitem" href="http://www.blogjava.net/magicblw"><img title="Subscribe to magicblw" src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/xml(1).gif" style="border-width:0px;"></a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl04_Link" class="listitem" href="http://www.blogjava.net/tonywang" target="_blank">tonywang</a><a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl04_RssLink" title="Subscribe to tonywang" class="listitem" href="http://www.blogjava.net/tonywang"><img title="Subscribe to tonywang" src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/xml(1).gif" style="border-width:0px;"></a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl05_Link" class="listitem" href="http://www.blogjava.net/crespo9907" target="_blank">施伟</a><a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl05_RssLink" title="Subscribe to 施伟" class="listitem" href="http://www.blogjava.net/crespo9907"><img title="Subscribe to 施伟" src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/xml(1).gif" style="border-width:0px;"></a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl06_Link" class="listitem" href="http://www.blogjava.net/amigoxie" target="_blank">阿蜜果</a><a id="SingleColumn1_Categories_CatList_ctl01_LinkList_ctl06_RssLink" title="Subscribe to 阿蜜果" class="listitem" href="http://www.blogjava.net/amigoxie"><img title="Subscribe to 阿蜜果" src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/xml(1).gif" style="border-width:0px;"></a></li>
+			
+				</ul>
+			
+	
+		<h1 class="catListTitle">朋友的地盘</h1>
+		
+				<ul class="catList">
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl02_LinkList_ctl01_Link" class="listitem" href="http://hi.baidu.com/dtctve" target="_blank">Gary</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl02_LinkList_ctl02_Link" class="listitem" href="http://blog.sina.com.cn/huazi123" target="_blank">huazi</a></li>
+			
+				<li class="catListItem"> <a id="SingleColumn1_Categories_CatList_ctl02_LinkList_ctl03_Link" class="listitem" href="http://blog.sina.com.cn/iamachristian" target="_blank">莹子</a></li>
+			<li style="margin-top:2px;">爱是恒久忍耐又有恩慈。生活没有什么了不起的大道理，只有充满智慧的小细节。enjoy your life.</li>
+				</ul>
+			
+	
+
+
+<script language="JavaScript">
+function SearchGoogle(key,evt,site)
+		{
+			if(evt.keyCode==13 || evt.keyCode==0 || evt.type =='click')
+			{
+				key.focus();
+				var keystr = encodeURIComponent(key.value);
+				url = "http://www.google.com/search?q=";
+				url = url+keystr;
+				url += "&ie=UTF-8&oe=GB2312&hl=zh-CN&domains="+site+"&sitesearch="+site;
+				window.location=url;
+				return false;
+			}
+		}
+</script>
+<h3>搜索</h3>
+<ul>
+	<li>
+		</li><li><input style="WIDTH: 130px" type="text" name="q" id="q" onkeydown="return SearchGoogle(document.getElementById(&#39;q&#39;),event,&#39;www.blogjava.net/kenzhh&#39;)">&nbsp;<input onclick="SearchGoogle(document.getElementById(&#39;q&#39;),event,&#39;www.blogjava.net/kenzhh&#39;)" type="button" value="搜索" name="sa">
+	</li>
+</ul>
+
+<h3>积分与排名</h3>
+<ul>
+	<li>
+		积分 -
+		340335
+	</li><li>
+		排名 -
+		143
+	</li>
+</ul>
+
+<h3>最新评论
+	<a id="SingleColumn1__28919cf_RSSHyperlink1" href="http://www.blogjava.net/kenzhh/CommentsRSS.aspx"><img src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/xml.gif" style="border-width:0px;"></a></h3>
+<div class="RecentComment">
+	
+			<ul>
+		
+			<li style="word-break:break-all">
+				<a id="SingleColumn1__28919cf_CommentList_ctl01_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2016/08/18/357824.html#431618">1.&nbsp;re: Java：单例模式的七种写法 </a>
+			</li>
+			<li style="word-break:break-all">
+				或者说只写一个final<br>
+			</li>
+			<li style="text-align:right;margin-right:4px">
+				--666</li>
+		
+			<li style="word-break:break-all">
+				<a id="SingleColumn1__28919cf_CommentList_ctl02_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2016/08/18/357824.html#431617">2.&nbsp;re: Java：单例模式的七种写法 </a>
+			</li>
+			<li style="word-break:break-all">
+				请问第五种那两个final可以不要？
+			</li>
+			<li style="text-align:right;margin-right:4px">
+				--666</li>
+		
+			<li style="word-break:break-all">
+				<a id="SingleColumn1__28919cf_CommentList_ctl03_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2016/07/26/357824.html#431327">3.&nbsp;re: Java：单例模式的七种写法 </a>
+			</li>
+			<li style="word-break:break-all">
+				很好的内容，先干为敬
+			</li>
+			<li style="text-align:right;margin-right:4px">
+				--halo </li>
+		
+			<li style="word-break:break-all">
+				<a id="SingleColumn1__28919cf_CommentList_ctl04_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2016/07/11/200948.html#431154">4.&nbsp;re: 严重: IOException while loading persisted sessions: java.io.EOFException</a>
+			</li>
+			<li style="word-break:break-all">
+				@premji<br>收益，谢谢
+			</li>
+			<li style="text-align:right;margin-right:4px">
+				--游客</li>
+		
+			<li style="word-break:break-all">
+				<a id="SingleColumn1__28919cf_CommentList_ctl05_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2016/05/16/357824.html#430540">5.&nbsp;re: Java：单例模式的七种写法 </a>
+			</li>
+			<li style="word-break:break-all">
+				@工工<br>渣渣，不要妄作评论！！
+			</li>
+			<li style="text-align:right;margin-right:4px">
+				--xiaore</li>
+		
+			</ul>
+		
+</div>
+
+<h3>阅读排行榜</h3>
+<div class="RecentComment">
+	
+			<ul style="word-break:break-all">
+		
+			<li>
+				<a id="SingleColumn1__2ef1c44_TopList_ctl01_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2011/09/02/357824.html">1.&nbsp;Java：单例模式的七种写法 (175012)</a>
+			</li>
+		
+			<li>
+				<a id="SingleColumn1__2ef1c44_TopList_ctl02_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2007/12/21/169364.html">2.&nbsp;java创建TXT文件并进行读、写、修改操作(70751)</a>
+			</li>
+		
+			<li>
+				<a id="SingleColumn1__2ef1c44_TopList_ctl03_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2008/05/16/200948.html">3.&nbsp;严重: IOException while loading persisted sessions: java.io.EOFException(23946)</a>
+			</li>
+		
+			<li>
+				<a id="SingleColumn1__2ef1c44_TopList_ctl04_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2008/09/03/226592.html">4.&nbsp;BeanUtils.copyProperties与PropertyUtils.copyProperties用法及区别[转载](16396)</a>
+			</li>
+		
+			<li>
+				<a id="SingleColumn1__2ef1c44_TopList_ctl05_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2007/11/16/161095.html">5.&nbsp;用URL传参带特殊字符，特殊字符丢失(7222)</a>
+			</li>
+		
+			</ul>
+		
+</div>
+
+<h3>评论排行榜</h3>
+<div class="RecentComment">
+	
+			<ul style="word-break:break-all">
+		
+			<li>
+				<a id="SingleColumn1__a053a0_TopList_ctl01_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2011/09/02/357824.html">1.&nbsp;Java：单例模式的七种写法 (32)</a>
+			</li>
+		
+			<li>
+				<a id="SingleColumn1__a053a0_TopList_ctl02_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2007/12/21/169364.html">2.&nbsp;java创建TXT文件并进行读、写、修改操作(17)</a>
+			</li>
+		
+			<li>
+				<a id="SingleColumn1__a053a0_TopList_ctl03_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2007/12/06/165735.html">3.&nbsp;电脑桌面的图标的文字下面有被选中的颜色方框，这样可以去掉(13)</a>
+			</li>
+		
+			<li>
+				<a id="SingleColumn1__a053a0_TopList_ctl04_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2008/05/16/200948.html">4.&nbsp;严重: IOException while loading persisted sessions: java.io.EOFException(12)</a>
+			</li>
+		
+			<li>
+				<a id="SingleColumn1__a053a0_TopList_ctl05_Hyperlink1" href="http://www.blogjava.net/kenzhh/archive/2007/11/16/161084.html">5.&nbsp;难解决的textarea中的回车和换行问题(8)</a>
+			</li>
+		
+			</ul>
+		
+</div>
+</div>
+	
+</div>
+<div id="centercontent">
+	
+					
+<!--done-->
+<div class="post">
+	<div class="postTitle">
+		<a id="viewpost1_TitleUrl" class="postTitle2" href="http://www.blogjava.net/kenzhh/archive/2011/09/02/357824.html">Java：单例模式的七种写法 </a>
+	</div>
+	<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px">转载出处：<a style="color: rgb(98,0,145); text-decoration: underline" href="http://cantellow.javaeye.com/blog/838473">http://cantellow.javaeye.com/blog/838473</a><br><br></p>
+<p><strong><span style="font-size: medium"><span style="color: #ff0000"><font size="3">第一种（懒汉，线程不安全）：</font></span></span></strong></p>
+<div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px"><!--<br /><br />Code highlighting produced by Actipro CodeHighlighter (freeware)<br />http://www.CodeHighlighter.com/<br /><br />--><span style="color: #008080">&nbsp;1</span>&nbsp;<span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">class</span><span style="color: #000000">&nbsp;Singleton&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;2</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Singleton&nbsp;instance;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;3</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp; <span class="keyword"><font color="#7f0055"><span style="color: #0000ff"><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span></span></font></span><span>Singleton&nbsp;(){}&nbsp;&nbsp;&nbsp;</span><br></span><span style="color: #008080">&nbsp;4</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Singleton&nbsp;getInstance()&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;5</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">if</span><span style="color: #000000">&nbsp;(instance&nbsp;</span><span style="color: #000000">==</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">null</span><span style="color: #000000">)&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;6</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;instance&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">new</span><span style="color: #000000">&nbsp;Singleton();&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;7</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;8</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">return</span><span style="color: #000000">&nbsp;instance;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;9</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">10</span>&nbsp;<span style="color: #000000">}&nbsp;&nbsp;<br></span><span style="color: #008080">11</span>&nbsp;<span style="color: #000000"></span></div>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"></p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"></p>这种写法lazy loading很明显，但是致命的是在多线程不能正常工作。<br><br>
+<p><span style="font-size: medium"><span style="color: #ff0000"><font size="3"><strong>第二种（懒汉，线程安全）：<br></strong></font></span></span></p><font size="3">
+<p><span style="color: #000000; font-size: 10pt"></span></p>
+<div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px"><!--<br /><br />Code highlighting produced by Actipro CodeHighlighter (freeware)<br />http://www.CodeHighlighter.com/<br /><br />--><span style="color: #008080">&nbsp;1</span>&nbsp;<span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">class</span><span style="color: #000000">&nbsp;Singleton&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;2</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Singleton&nbsp;instance;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;3</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp; <span class="keyword"><font color="#7f0055"><span style="color: #0000ff"><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span></span></font></span><span>Singleton&nbsp;(){}</span><br></span><span style="color: #008080">&nbsp;4</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">synchronized</span><span style="color: #000000">&nbsp;Singleton&nbsp;getInstance()&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;5</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">if</span><span style="color: #000000">&nbsp;(instance&nbsp;</span><span style="color: #000000">==</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">null</span><span style="color: #000000">)&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;6</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;instance&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">new</span><span style="color: #000000">&nbsp;Singleton();&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;7</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;8</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">return</span><span style="color: #000000">&nbsp;instance;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;9</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">10</span>&nbsp;<span style="color: #000000">}&nbsp;&nbsp;<br></span><span style="color: #008080">11</span>&nbsp;<span style="color: #000000"></span></div>
+<p>这种写法能够在多线程中很好的工作，而且看起来它也具备很好的lazy loading，但是，遗憾的是，效率很低，99%情况下不需要同步。<br><br><span style="color: #000000; font-size: 10pt"><strong style="font-weight: bold"><span style="color: rgb(255,0,0); font-size: medium">第三种（饿汉）：</span></strong></span><span style="color: #000000"><br></span></p>
+<p><font size="2"><span style="color: #000000"></span></font></p><font size="2">
+<div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px"><!--<br /><br />Code highlighting produced by Actipro CodeHighlighter (freeware)<br />http://www.CodeHighlighter.com/<br /><br />--><span style="color: #008080">1</span>&nbsp;<span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">class</span><span style="color: #000000">&nbsp;Singleton&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">2</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Singleton&nbsp;instance&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">new</span><span style="color: #000000">&nbsp;Singleton();&nbsp;&nbsp;<br></span><span style="color: #008080">3</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp; <span class="keyword"><font color="#7f0055"><span style="color: #0000ff"><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span></span></font></span><span>Singleton&nbsp;(){}</span><br></span><span style="color: #008080">4</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Singleton&nbsp;getInstance()&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">5</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">return</span><span style="color: #000000">&nbsp;instance;&nbsp;&nbsp;<br></span><span style="color: #008080">6</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">7</span>&nbsp;<span style="color: #000000">}&nbsp;&nbsp;<br></span><span style="color: #008080">8</span>&nbsp;<span style="color: #000000"></span></div>
+<p>这种方式基于<span style="color: #000000">classloder</span><span style="color: #000000">机制避免了多线程的同步问题，不过，</span><span style="color: #000000">instance</span><span style="color: #000000">在类装载时就实例化，虽然导致类装载的原因有很多种，在单例模式中大多数都是调用</span><span style="color: #000000">getInstance</span><span style="color: #000000">方法，</span><span>&nbsp;</span><span style="color: #000000">但是也不能确定有其他的方式（或者其他的静态方法）导致类装载，这时候初始化</span><span style="color: #000000">instance</span><span style="color: #000000">显然没有达到</span><span style="color: #000000">lazy loading</span><span style="color: #000000">的效果。<br><br></span></p>
+</font><p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><font size="2"><span style="color: rgb(255,0,0); font-size: medium"><strong style="font-weight: bold">第四种（<span style="color: rgb(0,0,0); font-size: 12px; font-weight: normal"><strong style="font-weight: bold"><span style="color: rgb(255,0,0); font-size: medium">饿</span></strong></span>汉，变种）：</strong></span></font></p>
+<p><font size="2"><span></span><span style="color: #000000"></span></font></p><font size="2">
+<div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px"><!--<br /><br />Code highlighting produced by Actipro CodeHighlighter (freeware)<br />http://www.CodeHighlighter.com/<br /><br />--><span style="color: #008080">&nbsp;1</span>&nbsp;<span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">class</span><span style="color: #000000">&nbsp;Singleton&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;2</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;Singleton&nbsp;instance&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">null</span><span style="color: #000000">;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;3</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;4</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;instance&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">new</span><span style="color: #000000">&nbsp;Singleton();&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;5</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;6</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp; <span class="keyword"><font color="#7f0055"><span style="color: #0000ff"><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span></span></font></span><span>Singleton&nbsp;(){}</span><br></span><span style="color: #008080">&nbsp;7</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Singleton&nbsp;getInstance()&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;8</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">return</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">this</span><span style="color: #000000">.instance;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;9</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">10</span>&nbsp;<span style="color: #000000">}&nbsp;&nbsp;<br></span><span style="color: #008080">11</span>&nbsp;<span style="color: #000000"></span></div>
+</font><p><font size="2">表面上看起来差别挺大，其实更第三种方式差不多，都是在类初始化即实例化instance。</font><br><br></p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="color: rgb(255,0,0); font-size: medium"><strong style="font-weight: bold">第五种（静态内部类）：<br></strong></span></p>
+<div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px"><!--<br /><br />Code highlighting produced by Actipro CodeHighlighter (freeware)<br />http://www.CodeHighlighter.com/<br /><br />--><span style="color: #008080">&nbsp;1</span>&nbsp;<span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">class</span><span style="color: #000000">&nbsp;Singleton&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;2</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">class</span><span style="color: #000000">&nbsp;SingletonHolder&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;3</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">final</span><span style="color: #000000">&nbsp;Singleton&nbsp;INSTANCE&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">new</span><span style="color: #000000">&nbsp;Singleton();&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;4</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;5</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp; <span class="keyword"><font color="#7f0055"><span style="color: #0000ff"><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span></span></font></span><span>Singleton&nbsp;(){}</span><br></span><span style="color: #008080">&nbsp;6</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">final</span><span style="color: #000000">&nbsp;Singleton&nbsp;getInstance()&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;7</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="color: #0000ff">return</span><span style="color: #000000">&nbsp;SingletonHolder.INSTANCE;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;8</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;9</span>&nbsp;<span style="color: #000000">}&nbsp;&nbsp;<br></span><span style="color: #008080">10</span>&nbsp;<span style="color: #000000"></span></div>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px">&nbsp;</p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><font size="2"><span style="color: #000000">这种方式同样利用了</span><span style="color: #000000">classloder</span><span style="color: #000000">的机制来保证初始化</span><span style="color: #000000">instance</span><span style="color: #000000">时只有一个线程，它跟第三种和第四种方式不同的是（很细微的差别）：第三种和第四种方式是只要</span><span style="color: #000000">Singleton</span><span style="color: #000000">类被装载了，那么</span><span style="color: #000000">instance</span><span style="color: #000000">就会被实例化（没有达到</span><span style="color: #000000">lazy loading</span><span style="color: #000000">效果），而这种方式是</span><span style="color: #000000">Singleton</span><span style="color: #000000">类被装载了，</span><span style="color: #000000">instance</span><span style="color: #000000">不一定被初始化。因为</span><span style="color: #000000">SingletonHolder</span><span style="color: #000000">类没有被主动使用，只有显示通过调用</span><span style="color: #000000">getInstance</span><span style="color: #000000">方法时，才会显示装载</span><span style="color: #000000">SingletonHolder</span><span style="color: #000000">类，从而实例化</span><span style="color: #000000">instance</span><span style="color: #000000">。想象一下，如果实例化</span><span style="color: #000000">instance</span><span style="color: #000000">很消耗资源，我想让他延迟加载，另外一方面，我不希望在</span><span style="color: #000000">Singleton</span><span style="color: #000000">类加载时就实例化，因为我不能确保</span><span style="color: #000000">Singleton</span><span style="color: #000000">类还可能在其他的地方被主动使用从而被加载，那么这个时候实例化</span><span style="color: #000000">instance</span><span style="color: #000000">显然是不合适的。这个时候，这种方式相比第三和第四种方式就显得很合理。<br><br></span></font></p><font size="2">
+</font><p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><font size="2"><strong style="font-weight: bold"><span style="color: rgb(255,0,0); font-size: medium">第六种（枚举）：</span></strong></font></p>
+<div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px"><!--<br /><br />Code highlighting produced by Actipro CodeHighlighter (freeware)<br />http://www.CodeHighlighter.com/<br /><br />--><span style="color: #008080">1</span>&nbsp;<span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">enum</span><span style="color: #000000">&nbsp;Singleton&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">2</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;INSTANCE;&nbsp;&nbsp;<br></span><span style="color: #008080">3</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">void</span><span style="color: #000000">&nbsp;whateverMethod()&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">4</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">5</span>&nbsp;<span style="color: #000000">}&nbsp;&nbsp;<br></span><span style="color: #008080">6</span>&nbsp;<span style="color: #000000"></span></div>
+<p><span style="color: #000000; font-size: 10pt">这种方式是Effective Java作者Josh Bloch 提倡的方式，它不仅能避免多线程同步问题，而且还能防止反序列化重新创建新的对象，可谓是很坚强的壁垒啊，不过，个人认为由于1.5中才加入enum特性，用这种方式写不免让人感觉生疏，在实际工作中，我也很少看见有人这么写过。</span><br>&nbsp;</p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="color: rgb(255,0,0); font-size: medium"><strong style="font-weight: bold">第七种（双重校验锁）：<br></strong></span></p>
+<p><span style="color: #000000; font-size: 10pt"></span></p>
+<div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px"><!--<br /><br />Code highlighting produced by Actipro CodeHighlighter (freeware)<br />http://www.CodeHighlighter.com/<br /><br />--><span style="color: #008080">&nbsp;1</span>&nbsp;<span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">class</span><span style="color: #000000">&nbsp;Singleton&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;2</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">volatile</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Singleton&nbsp;singleton;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;3</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp; <span class="keyword"><font color="#7f0055"><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span></font></span><span>Singleton&nbsp;(){}&nbsp;&nbsp;&nbsp;</span><br></span><span style="color: #008080">&nbsp;4</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Singleton&nbsp;getSingleton()&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;5</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">if</span><span style="color: #000000">&nbsp;(singleton&nbsp;</span><span style="color: #000000">==</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">null</span><span style="color: #000000">)&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;6</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">synchronized</span><span style="color: #000000">&nbsp;(Singleton.</span><span style="color: #0000ff">class</span><span style="color: #000000">)&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;7</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">if</span><span style="color: #000000">&nbsp;(singleton&nbsp;</span><span style="color: #000000">==</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">null</span><span style="color: #000000">)&nbsp;{&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;8</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;singleton&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">new</span><span style="color: #000000">&nbsp;Singleton();&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;9</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">10</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">11</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">12</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">return</span><span style="color: #000000">&nbsp;singleton;&nbsp;&nbsp;<br></span><span style="color: #008080">13</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;<br></span><span style="color: #008080">14</span>&nbsp;<span style="color: #000000">}&nbsp;&nbsp;<br></span><span style="color: #008080">15</span>&nbsp;<span style="color: #000000"></span></div>
+<p>这个是第二种方式的升级版，俗称双重检查锁定，详细介绍请查看：<a style="color: rgb(98,0,145); text-decoration: underline" href="http://www.ibm.com/developerworks/cn/java/j-dcl.html"><span style="color: #000000; font-size: 10pt">http://www.ibm.com/developerworks/cn/java/j-dcl.html</span></a> </p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="color: #000000; font-size: 10pt">在JDK1.5之后，双重检查锁定才能够正常达到单例效果。<br><br></span></p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><strong style="font-weight: bold"><span style="font-size: large"><span style="color: rgb(0,0,255)"><font size="2">总结</font></span></span></strong></p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="font-size: 10pt">有两个问题需要注意：</span></p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="font-size: 10pt">&nbsp;&nbsp;&nbsp;&nbsp; 1、如果单例由不同的类装载器装入，那便有可能存在多个单例类的实例。假定不是远端存取，例如一些<span lang="EN-US"><font size="2"><span style="font-size: 10pt">servlet</span></font></span></span><span style="font-size: 10pt">容器对每个<span lang="EN-US"><font size="2"><span style="font-size: 10pt">servlet</span></font></span></span><span style="font-size: 10pt">使用完全不同的类&nbsp; 装载器，这样的话如果有两个<span lang="EN-US"><font size="2"><span style="font-size: 10pt">servlet</span></font></span></span><span style="font-size: 10pt">访问一个单例类，它们就都会有各自的实例。</span></p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="font-size: 10pt">&nbsp;&nbsp;&nbsp;&nbsp; 2、如果<span lang="EN-US"><font size="2"><span style="font-size: 10pt">Singleton</span></font></span></span><span style="font-size: 10pt">实现了<span lang="EN-US"><font size="2"><span style="font-size: 10pt">java.io.Serializable</span></font></span></span><span style="font-size: 10pt">接口，那么这个类的实例就可能被序列化和复原。不管怎样，如果你序列化一个单例类的对象，接下来复原多个那个对象，那你就会有多个单例类的实例。<br><br></span></p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px">对第一个问题修复的办法是：</p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"></p>
+<div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px"><!--<br /><br />Code highlighting produced by Actipro CodeHighlighter (freeware)<br />http://www.CodeHighlighter.com/<br /><br />--><span style="color: #008080">&nbsp;1</span>&nbsp;<span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Class&nbsp;getClass(String&nbsp;classname)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;2</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">throws</span><span style="color: #000000">&nbsp;ClassNotFoundException&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;3</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ClassLoader&nbsp;classLoader&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;Thread.currentThread().getContextClassLoader();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;4</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;5</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">if</span><span style="color: #000000">(classLoader&nbsp;</span><span style="color: #000000">==</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">null</span><span style="color: #000000">)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;6</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;classLoader&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;Singleton.</span><span style="color: #0000ff">class</span><span style="color: #000000">.getClassLoader();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;7</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;8</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">return</span><span style="color: #000000">&nbsp;(classLoader.loadClass(classname));&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;9</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">10</span>&nbsp;<span style="color: #000000">}&nbsp;&nbsp;<br></span><span style="color: #008080">11</span>&nbsp;<span style="color: #000000"></span></div>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px">&nbsp;</p>
+<p><span style="color: #000000; font-size: 10pt">&nbsp;对第二个问题修复的办法是：</span>&nbsp;</p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="color: #000000"></span></p>
+<div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px"><!--<br /><br />Code highlighting produced by Actipro CodeHighlighter (freeware)<br />http://www.CodeHighlighter.com/<br /><br />--><span style="color: #008080">&nbsp;1</span>&nbsp;<span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">class</span><span style="color: #000000">&nbsp;Singleton&nbsp;</span><span style="color: #0000ff">implements</span><span style="color: #000000">&nbsp;java.io.Serializable&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;2</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">public</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">static</span><span style="color: #000000">&nbsp;Singleton&nbsp;INSTANCE&nbsp;</span><span style="color: #000000">=</span><span style="color: #000000">&nbsp;</span><span style="color: #0000ff">new</span><span style="color: #000000">&nbsp;Singleton();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;3</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;4</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">protected</span><span style="color: #000000">&nbsp;Singleton()&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;5</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;6</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;7</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">private</span><span style="color: #000000">&nbsp;Object&nbsp;readResolve()&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;8</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff">return</span><span style="color: #000000">&nbsp;INSTANCE;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">&nbsp;9</span>&nbsp;<span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">10</span>&nbsp;<span style="color: #000000">}&nbsp;&nbsp;&nbsp;<br></span><span style="color: #008080">11</span>&nbsp;<span style="color: #000000"></span></div>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px">对我来说，我比较喜欢第三种和第五种方式，简单易懂，而且在JVM层实现了线程安全（如果不是多个类加载器环境），一般的情况下，我会使用第三种方式，只有在要明确实现lazy loading效果时才会使用第五种方式，另外，如果涉及到反序列化创建对象时我会试着使用枚举的方式来实现单例，不过，我一直会保证我的程序是线程安全的，而且我永远不会使用第一种和第二种方式，如果有其他特殊的需求，我可能会使用第七种方式，毕竟，JDK1.5已经没有双重检查锁定的问题了。</p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="color: #000000">========================================================================</span></p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="line-height: 18px; font-family: Arial, sans-serif, Helvetica, Tahoma; color: #0000ff">&nbsp;<a style="color: rgb(98,0,145); text-decoration: underline" href="http://superheizai.javaeye.com/" target="_blank"><span style="color: #0000ff">superheizai</span></a></span><span style="line-height: 18px; font-family: Arial, sans-serif, Helvetica, Tahoma; color: #000000">同学总结的很到位：</span></p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px">&nbsp;</p>
+<p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><span style="color: #000000">不过一般来说，第一种不算单例，第四种和第三种就是一种，如果算的话，第五种也可以分开写了。所以说，一般单例都是五种写法。懒汉，恶汉，双重校验锁，枚举和静态内部类。</span></p>
+</font><p style="padding-bottom: 0px; line-height: 18px; margin: 0px; padding-left: 0px; padding-right: 0px; font-family: Arial, sans-serif, Helvetica, Tahoma; font-size: 12px; padding-top: 0px"><font size="3"><span style="color: #000000">我很高兴有这样的读者，一起共勉。</span><br><br></font>&nbsp;</p>
+	<div class="postDesc">posted on 2011-09-02 14:49 <a href="http://www.blogjava.net/kenzhh/">kenzhang</a> 阅读(175013) <a href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#Post">评论(32)</a> &nbsp;<a href="http://www.blogjava.net/kenzhh/admin/EditPosts.aspx?postid=357824">编辑</a> &nbsp;<a href="http://www.blogjava.net/kenzhh/AddToFavorite.aspx?id=357824">收藏</a>  </div>
+</div>
+<img src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/357824.html" width="1" height="1">
+
+<!--
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+xmlns:dc="http://purl.org/dc/elements/1.1/"
+xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/">
+<rdf:Description
+rdf:about="http://www.blogjava.net/kenzhh/archive/2011/09/02/357824.html"
+dc:identifier="http://www.blogjava.net/kenzhh/archive/2011/09/02/357824.html"
+dc:title="Java：单例模式的七种写法 "
+trackback:ping="http://www.blogjava.net/kenzhh/services/trackbacks/357824.aspx" />
+</rdf:RDF>
+-->
+
+<script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('AjaxHolder$scriptmanager1', document.getElementById('Form1'));
+Sys.WebForms.PageRequestManager.getInstance()._updateControls(['tAjaxHolder$UpdatePanel1'], [], [], 90);
+//]]>
+</script>
+
+<div id="AjaxHolder_UpdatePanel1">
+	    
+    <a name="pagedcomment"></a>
+<!--done-->
+<br>
+<b>FeedBack:</b>
+<div class="feedbackNoItems"></div>
+	
+
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#396468">#</a>&nbsp;<a name="396468"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2013-03-15 11:03 | <a id="AjaxHolder_Comments_CommentList_ctl00_NameLink" target="_blank">工工</a><br>
+				<div align="left">单例和线程安全有关系吗？单例取出一个实例，全局只此一个，多线程下使用，必须加以控制才达到线程安全的目的。所以单例不是线程安全的，单例的设计也不是为线程安全考虑的，所以作者纯属误导读者。&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;工工&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e5%b7%a5%e5%b7%a5" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl00_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl00$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl00_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#401229">#</a>&nbsp;<a name="401229"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2013-07-05 09:35 | <a id="AjaxHolder_Comments_CommentList_ctl01_NameLink" href="http://www.melove.net/" target="_blank">正仔</a><br>
+				<div align="left">喜欢第五种，简单安全，不过有点儿乱的是，太多选择了，不知道什么时候该用哪一种！&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;正仔&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e6%ad%a3%e4%bb%94" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl01_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl01$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl01_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#406637">#</a>&nbsp;<a name="406637"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2013-11-21 16:03 | <a id="AjaxHolder_Comments_CommentList_ctl02_NameLink" target="_blank">除美灭日平韩</a><br>
+				<div align="left">好文章&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;除美灭日平韩&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e9%99%a4%e7%be%8e%e7%81%ad%e6%97%a5%e5%b9%b3%e9%9f%a9" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl02_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl02$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl02_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#408574">#</a>&nbsp;<a name="408574"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2014-01-06 15:30 | <a id="AjaxHolder_Comments_CommentList_ctl03_NameLink" target="_blank">TT</a><br>
+				<div align="left">考试考了，但是什么也不会...&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;TT&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=TT" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl03_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl03$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl03_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 [未登录]" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#414298">#</a>&nbsp;<a name="414298"></a>re: Java：单例模式的七种写法 [未登录]</div>
+			<div class="feedbackListSubtitle">
+				2014-06-01 12:09 | <a id="AjaxHolder_Comments_CommentList_ctl04_NameLink" href="http://java/" target="_blank">java</a><br>
+				<div align="left">@工工<br>不懂就虚心点&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;java&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=java" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl04_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl04$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl04_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#414302">#</a>&nbsp;<a name="414302"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2014-06-01 19:01 | <a id="AjaxHolder_Comments_CommentList_ctl05_NameLink" href="http://www.fqhyxt.com/" target="_blank">番茄花园</a><br>
+				<div align="left">看一下java的小程序&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;番茄花园&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e7%95%aa%e8%8c%84%e8%8a%b1%e5%9b%ad" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl05_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl05$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl05_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 [未登录]" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#421949">#</a>&nbsp;<a name="421949"></a>re: Java：单例模式的七种写法 [未登录]</div>
+			<div class="feedbackListSubtitle">
+				2014-12-30 10:47 | <a id="AjaxHolder_Comments_CommentList_ctl06_NameLink" target="_blank">lyc</a><br>
+				<div align="left">@工工<br>我真是笑了。单例模式被应用在多线程时实在是太多了，作者分析各种单例写法的线程安全，如此有用又受益的分析你居然说误导。&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;lyc&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=lyc" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl06_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl06$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl06_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#422443">#</a>&nbsp;<a name="422443"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2015-01-26 15:56 | <a id="AjaxHolder_Comments_CommentList_ctl07_NameLink" href="http://www.blogjava.net/zghbhdxw/" target="_blank">wjx</a><br>
+				<div align="left">我一直在用第七种&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;wjx&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=wjx" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl07_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl07$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl07_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 [未登录]" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#423705">#</a>&nbsp;<a name="423705"></a>re: Java：单例模式的七种写法 [未登录]</div>
+			<div class="feedbackListSubtitle">
+				2015-03-21 23:13 | <a id="AjaxHolder_Comments_CommentList_ctl08_NameLink" target="_blank">carl</a><br>
+				<div align="left">@工工<br>希望你写java代码还不足2年，不然真为你感到汗颜。&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;carl&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=carl" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl08_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl08$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl08_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#423919">#</a>&nbsp;<a name="423919"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2015-03-29 10:11 | <a id="AjaxHolder_Comments_CommentList_ctl09_NameLink" target="_blank">何敏杰</a><br>
+				<div align="left">不懂不要瞎写&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;何敏杰&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e4%bd%95%e6%95%8f%e6%9d%b0" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl09_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl09$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl09_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 [未登录]" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#424151">#</a>&nbsp;<a name="424151"></a>re: Java：单例模式的七种写法 [未登录]</div>
+			<div class="feedbackListSubtitle">
+				2015-04-06 14:43 | <a id="AjaxHolder_Comments_CommentList_ctl10_NameLink" target="_blank">aa</a><br>
+				<div align="left">第四个代码有问题吧&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;aa&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=aa" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl10_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl10$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl10_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#424174">#</a>&nbsp;<a name="424174"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2015-04-07 11:34 | <a id="AjaxHolder_Comments_CommentList_ctl11_NameLink" target="_blank">小码农</a><br>
+				<div align="left">总结非常好！&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;小码农&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e5%b0%8f%e7%a0%81%e5%86%9c" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl11_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl11$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl11_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#424175">#</a>&nbsp;<a name="424175"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2015-04-07 11:34 | <a id="AjaxHolder_Comments_CommentList_ctl12_NameLink" target="_blank">小码农</a><br>
+				<div align="left">总结的非常好，很到位&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;小码农&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e5%b0%8f%e7%a0%81%e5%86%9c" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl12_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl12$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl12_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#424369">#</a>&nbsp;<a name="424369"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2015-04-13 16:48 | <a id="AjaxHolder_Comments_CommentList_ctl13_NameLink" target="_blank">fym</a><br>
+				<div align="left">第四种（饿汉，变种）：&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;fym&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=fym" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl13_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl13$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl13_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#424370">#</a>&nbsp;<a name="424370"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2015-04-13 16:49 | <a id="AjaxHolder_Comments_CommentList_ctl14_NameLink" target="_blank">fym</a><br>
+				<div align="left">第四种（饿汉，变种）：没有验证 少了一个static字段&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;fym&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=fym" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl14_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl14$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl14_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#426951">#</a>&nbsp;<a name="426951"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2015-08-22 20:41 | <a id="AjaxHolder_Comments_CommentList_ctl15_NameLink" target="_blank">李元昊</a><br>
+				<div align="left">@工工<br>纯属二笔 啥也不懂&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;李元昊&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e6%9d%8e%e5%85%83%e6%98%8a" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl15_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl15$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl15_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#428039">#</a>&nbsp;<a name="428039"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2015-11-03 17:21 | <a id="AjaxHolder_Comments_CommentList_ctl16_NameLink" target="_blank">MrLee</a><br>
+				<div align="left">@工工<br>菜逼，请虚心点&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;MrLee&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=MrLee" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl16_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl16$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl16_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#428108">#</a>&nbsp;<a name="428108"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2015-11-10 05:19 | <a id="AjaxHolder_Comments_CommentList_ctl17_NameLink" target="_blank">AthMe</a><br>
+				<div align="left">谢谢博主分享&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;AthMe&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=AthMe" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl17_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl17$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl17_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 [未登录]" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#428933">#</a>&nbsp;<a name="428933"></a>re: Java：单例模式的七种写法 [未登录]</div>
+			<div class="feedbackListSubtitle">
+				2016-01-05 10:30 | <a id="AjaxHolder_Comments_CommentList_ctl18_NameLink" target="_blank">thomas</a><br>
+				<div align="left">@工工<br>自己不明白，就不要哗众取宠。 题注说的线程安全值得是获取该对象的时候的线程安全。 如果没有进行线程安全的处理，多个线程通过单例模式获取对象的时候，有可能获取到多个对象。 如果系统是建立在该类是单例的基础上，将会导致非常严重的后果。&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;thomas&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=thomas" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl18_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl18$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl18_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#429296">#</a>&nbsp;<a name="429296"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2016-02-04 15:46 | <a id="AjaxHolder_Comments_CommentList_ctl19_NameLink" target="_blank">caepek</a><br>
+				<div align="left">你这个网页被win10浏览器屏蔽了 被报不安全网页 fuck微软！&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;caepek&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=caepek" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl19_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl19$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl19_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 [未登录]" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#429428">#</a>&nbsp;<a name="429428"></a>re: Java：单例模式的七种写法 [未登录]</div>
+			<div class="feedbackListSubtitle">
+				2016-02-25 14:23 | <a id="AjaxHolder_Comments_CommentList_ctl20_NameLink" target="_blank">CHEN</a><br>
+				<div align="left">博主写的确实很好，能够在最后指出不同的容器在加载的时候需要指定classloader，在序列化时候指定readResolve。<br>我可以很负责任的说博主写的内容确实要比很多人想象的深很多。能够做到上面两点的，不仅很少同时，很多人都是直接的抄袭。给博主一个赞。&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;CHEN&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=CHEN" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl20_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl20$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl20_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#429436">#</a>&nbsp;<a name="429436"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2016-02-25 22:01 | <a id="AjaxHolder_Comments_CommentList_ctl21_NameLink" target="_blank">paganono</a><br>
+				<div align="left">楼主写的不错，但是有个地方说的不对，static代码块并非在类被加载的时候初始化，这个是个误区，所以第5种方法和第4种方法执行效果是一样的。<br>staitic代码块初始化是在类初始化的时候，参照下面：<br>当创建某个类的新实例时（如通过new或者反射，克隆，反序列化等）<br>当调用某个类的静态方法时<br>当使用某个类或接口的静态字段时<br>当调用Java API中的某些反射方法时，比如类Class中的方法，或者java.lang.reflect中的类的方法时<br>当初始化某个子类时<br>当虚拟机启动某个被标明为启动类的类（即包含main方法的那个类）&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;paganono&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=paganono" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl21_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl21$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl21_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#429454">#</a>&nbsp;<a name="429454"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2016-02-27 10:59 | <a id="AjaxHolder_Comments_CommentList_ctl22_NameLink" target="_blank">Fly鱼</a><br>
+				<div align="left">@paganono<br>首先，你说的不正确，static初始化块是类加载到JVM时执行的。非static初始化块({})是像你说的那样，你把概念搞混了。<br>其次，版主的的第四个例子写错了。错误如下：<br>private Singleton instance = null;  应该加上static修饰。<br>return this.instance;  应该去掉this.。第三个示例和第四个示例的效果是一样一样的。&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;Fly鱼&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=Fly%e9%b1%bc" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl22_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl22$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl22_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#429634">#</a>&nbsp;<a name="429634"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2016-03-12 16:09 | <a id="AjaxHolder_Comments_CommentList_ctl23_NameLink" target="_blank">浦云鹤</a><br>
+				<div align="left">网上大神真多,膜拜啊&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;浦云鹤&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e6%b5%a6%e4%ba%91%e9%b9%a4" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl23_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl23$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl23_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#429635">#</a>&nbsp;<a name="429635"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2016-03-12 16:11 | <a id="AjaxHolder_Comments_CommentList_ctl24_NameLink" target="_blank">浦云鹤</a><br>
+				<div align="left">@Fly鱼<br>this写不写都可以,没有影响&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;浦云鹤&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=%e6%b5%a6%e4%ba%91%e9%b9%a4" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl24_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl24$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl24_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#429847">#</a>&nbsp;<a name="429847"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2016-03-28 17:12 | <a id="AjaxHolder_Comments_CommentList_ctl25_NameLink" target="_blank">wan</a><br>
+				<div align="left">@Fly鱼<br>人家没错你错了<br>自己写代码看看就知道了&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;wan&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=wan" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl25_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl25$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl25_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 [未登录]" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#430016">#</a>&nbsp;<a name="430016"></a>re: Java：单例模式的七种写法 [未登录]</div>
+			<div class="feedbackListSubtitle">
+				2016-04-07 19:12 | <a id="AjaxHolder_Comments_CommentList_ctl26_NameLink" href="http://0.0.1.77/" target="_blank">111</a><br>
+				<div align="left">@工工<br>你是SB吗&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;111&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=111" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl26_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl26$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl26_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 [未登录]" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#430313">#</a>&nbsp;<a name="430313"></a>re: Java：单例模式的七种写法 [未登录]</div>
+			<div class="feedbackListSubtitle">
+				2016-04-30 19:47 | <a id="AjaxHolder_Comments_CommentList_ctl27_NameLink" target="_blank">cf</a><br>
+				<div align="left">@lyc<br>@wan<br>@浦云鹤<br>我也是醉了，<br>1.第四种写法，错了，static块去给非static的属性赋值，@wan你确信有自己写代码试过行的通？@浦云鹤 改成static写不写this还一样？<br>@lyc @工工 说的应该是单里内变量的线程安全，博主说的是单例实例化的线程安全，都没有错&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;cf&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=cf" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl27_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl27$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl27_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#430540">#</a>&nbsp;<a name="430540"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2016-05-16 21:23 | <a id="AjaxHolder_Comments_CommentList_ctl28_NameLink" target="_blank">xiaore</a><br>
+				<div align="left">@工工<br>渣渣，不要妄作评论！！&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;xiaore&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=xiaore" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl28_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl28$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl28_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#431327">#</a>&nbsp;<a name="431327"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2016-07-26 14:31 | <a id="AjaxHolder_Comments_CommentList_ctl29_NameLink" target="_blank">halo </a><br>
+				<div align="left">很好的内容，先干为敬&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;halo &quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=halo+" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl29_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl29$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl29_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#431617">#</a>&nbsp;<a name="431617"></a>re: Java：单例模式的七种写法 </div>
+			<div class="feedbackListSubtitle">
+				2016-08-18 10:06 | <a id="AjaxHolder_Comments_CommentList_ctl30_NameLink" target="_blank">666</a><br>
+				<div align="left">请问第五种那两个final可以不要？&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;666&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=666" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl30_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl30$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl30_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListTitle"><a title="permalink: re: Java：单例模式的七种写法 " href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#431618">#</a>&nbsp;<a name="431618"></a>re: Java：单例模式的七种写法 <a name="Post"></a></div>
+			<div class="feedbackListSubtitle">
+				2016-08-18 10:07 | <a id="AjaxHolder_Comments_CommentList_ctl31_NameLink" target="_blank">666</a><br>
+				<div align="left">或者说只写一个final<br>&nbsp;&nbsp;<a onclick="return SetReplyAuhor(&quot;666&quot;)" href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html#post">回复</a>&nbsp;&nbsp;<a title="查看该作者发表过的评论" href="http://www.blogjava.net/comment?author=666" target="_blank">更多评论</a><br><a id="AjaxHolder_Comments_CommentList_ctl31_DeleteLink" href="javascript:__doPostBack(&#39;AjaxHolder$Comments$CommentList$ctl31$DeleteLink&#39;,&#39;&#39;)"></a>&nbsp;&nbsp;<a id="AjaxHolder_Comments_CommentList_ctl31_EditLink"></a></div>
+			</div>
+			
+			
+		</div>
+	
+
+
+
+
+<style>
+td { font-size: 12px }
+.commentTextBox 
+{ 
+    font-family : Verdana; 
+    font-size: 13px;
+ }
+</style>
+<!--Beging Temp Save-->
+<style>.userData { BEHAVIOR: url(#default#userdata) }
+	</style>
+<div class="userData" id="CommentsPersistDiv"></div>
+
+<script type="text/javascript">
+function pageLoad()
+{
+    Sys.WebForms.PageRequestManager.getInstance().add_initializeRequest(handleInitializeRequest);
+    //Sys.WebForms.PageRequestManager.getInstance().add_endRequest(handleEndRequest);
+}
+
+function handleInitializeRequest(sender, args)
+{
+    var prm = Sys.WebForms.PageRequestManager.getInstance();
+    var eid = args.get_postBackElement().id;
+    if (eid.indexOf("DeleteLink")>0) 
+    {
+       args.get_postBackElement().innerHTML = "<font color='red'>正在删除...</font>";         
+    }    
+    else if (eid.indexOf("btnSubmit")>0) 
+    {
+       document.getElementById("AjaxHolder_PostComment_ltSubmitMsg").innerHTML="正在提交...";
+       document.getElementById("AjaxHolder_PostComment_btnSubmit").disabled = true;       
+    }   
+    else if(eid.indexOf("refreshList")>0)
+    {
+        document.getElementById("AjaxHolder_PostComment_refreshList").innerHTML="<font color='red'>正在刷新...</font>";
+    }
+   
+}	
+
+function TempSave(ElementID)
+{
+	try
+	{
+	CommentsPersistDiv.setAttribute("CommentContent",document.getElementById(ElementID).value);
+	CommentsPersistDiv.save("CommentXMLStore");
+	}
+	catch(ex)
+	{
+	}
+	
+}
+function Restore(ElementID)
+{
+	CommentsPersistDiv.load("CommentXMLStore");
+	document.getElementById(ElementID).value=CommentsPersistDiv.getAttribute("CommentContent");
+}	
+			
+			
+</script>
+<!--Ene TempSave-->
+<div id="divRefreshComments" style="text-align:right;margin-right:10px;margin-bottom:5px;font-size:12px"><a href="http://www.blogjava.net/RequireRegister.aspx">新用户注册</a>&nbsp;&nbsp;<a id="AjaxHolder_PostComment_refreshList" href="javascript:__doPostBack(&#39;AjaxHolder$PostComment$refreshList&#39;,&#39;&#39;)">刷新评论列表</a>&nbsp;&nbsp;</div>
+<div class="commentform">
+<span id="AjaxHolder_PostComment_ltSubmitMsg" style="color:Red;"></span>
+<br>
+<a name="Feedback"></a>
+	<table cellspacing="1" cellpadding="1" border="0">
+		<tbody><tr>
+		<td id="AjaxHolder_PostComment_tdOnCommentForm" colspan="3" style="line-height:1.5">		
+		</td>
+	
+		</tr>
+		
+		<tr><td colspan="3">只有注册用户<a href="http://www.blogjava.net/login.aspx?ReturnUrl=/kenzhh/archive/2013/03/15/357824.html">登录</a>后才能发表评论。</td></tr>
+		<tr>
+			<td colspan="3"><!--该文被作者在 2011-09-02 15:33 编辑过--></td>
+		</tr>
+		<!--
+		<TR>
+			<TD colSpan="3" height="5"></TD>
+		</TR>	
+		-->	
+		<tr>
+		<td colspan="3">
+		<br>
+		
+<script type="text/javascript">
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+(function() {
+var gads = document.createElement('script');
+gads.async = true;
+gads.type = 'text/javascript';
+var useSSL = 'https:' == document.location.protocol;
+gads.src = (useSSL ? 'https:' : 'http:') + 
+'//www.googletagservices.com/tag/js/gpt.js';
+var node = document.getElementsByTagName('script')[0];
+node.parentNode.insertBefore(gads, node);
+})();
+</script>
+
+<script type="text/javascript">
+googletag.cmd.push(function() {
+googletag.defineSlot('/1090369/blogjava_blogpost_bottom', [300, 250], 'div-gpt-ad-1364133350381-0').addService(googletag.pubads());
+googletag.pubads().enableSingleRequest();
+googletag.enableServices();
+});
+</script>
+<!-- blogjava_blogpost_bottom -->
+<div id="div-gpt-ad-1364133350381-0" style="width:300px; height:250px;">
+<script type="text/javascript">
+googletag.cmd.push(function() { googletag.display('div-gpt-ad-1364133350381-0'); });
+</script>
+</div>
+<br>
+
+		</td>
+		</tr>
+		<tr>			
+		<td colspan="3">
+		
+		</td>
+		</tr>
+		<tr>
+		<td colspan="3"></td>
+		</tr>
+		<tr>
+			<td colspan="3" height="1">网站导航:<div id="blogsite">
+			<a href="http://www.cnblogs.com/" title="开发者的网上家园">博客园</a>&nbsp;&nbsp;
+			<a href="https://news.cnblogs.com/">IT新闻</a>&nbsp;&nbsp;
+			<a href="http://kb.cnblogs.com/">知识库</a>&nbsp;&nbsp;
+			<a href="http://www.cppblog.com/">C++博客</a>&nbsp;&nbsp;
+			<a href="https://q.cnblogs.com/">博问</a>&nbsp;&nbsp;
+			<a href="http://www.blogjava.net/kenzhh/archive/2013/03/15/357824.html?opt=admin">管理</a>
+			</div>
+		</td>
+		</tr>
+		<tr>
+			<td colspan="3" height="5"></td>
+		</tr>	
+		<tr>
+			<td colspan="3">&nbsp;</td>
+		</tr>
+		<tr>
+			<td colspan="3" height="5"></td>
+		</tr>
+		<tr>
+			<td colspan="3">
+				</td>
+		</tr>		
+	</tbody></table>	
+</div>
+<div id="AjaxHolder_PostComment_ValidationSummary1" style="color:Red;display:none;">
+
+	</div>
+
+</div>
+
+				
+</div>
+
+<!--done-->
+<div class="footer">
+	
+	Copyright ©2017 kenzhang Powered By<a href="http://www.blogjava.net/">博客园</a> 模板提供：<a href="http://blog.hjenglish.com/">沪江博客</a>
+</div>
+    
+<script type="text/javascript">
+//<![CDATA[
+var Page_ValidationSummaries =  new Array(document.getElementById("AjaxHolder_PostComment_ValidationSummary1"));
+//]]>
+</script>
+
+<script type="text/javascript">
+//<![CDATA[
+var AjaxHolder_PostComment_ValidationSummary1 = document.all ? document.all["AjaxHolder_PostComment_ValidationSummary1"] : document.getElementById("AjaxHolder_PostComment_ValidationSummary1");
+AjaxHolder_PostComment_ValidationSummary1.showmessagebox = "True";
+AjaxHolder_PostComment_ValidationSummary1.showsummary = "False";
+//]]>
+</script>
+
+
+<script type="text/javascript">
+//<![CDATA[
+
+document.getElementById('AjaxHolder_PostComment_ValidationSummary1').dispose = function() {
+    Array.remove(Page_ValidationSummaries, document.getElementById('AjaxHolder_PostComment_ValidationSummary1'));
+}
+Sys.Application.initialize();
+//]]>
+</script>
+</form>
+    <script type="text/javascript" src="./Java：单例模式的七种写法 - 问征夫以前路 - BlogJava_files/ShowHidden.js"></script>
+	<script type="text/javascript">
+	  var _gaq = _gaq || [];
+	  _gaq.push(['_setAccount', 'UA-476124-3']);
+	  _gaq.push(['_trackPageview']);
+
+	  (function() {
+		var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+		ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+		var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	  })();
+	</script>
+
+
+</body></html>

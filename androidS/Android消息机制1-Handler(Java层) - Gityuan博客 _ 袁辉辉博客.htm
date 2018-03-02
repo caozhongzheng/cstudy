@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<!-- saved from url=(0056)http://gityuan.com/2015/12/26/handler-message-framework/ -->
+<html lang="en" version="g42dymwpi--nx"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="gityuan">
+    <meta name="keyword" content="Android,Gityuan,Android技术博客,Android源码分析,袁辉辉">
+    <meta name="description" content="Android,Gityuan,Android技术博客,Android源码分析,袁辉辉">
+    <meta name="baidu-site-verification" content="tgshRgudx0">
+    <link rel="shortcut icon" href="http://gityuan.com/images/favicon.ico">
+    <title>Android消息机制1-Handler(Java层) - Gityuan博客 | 袁辉辉博客</title>
+
+    <link rel="canonical" href="http://gityuan.com/2015/12/26/handler-message-framework/">
+
+    <!-- Bootstrap Core CSS -->
+    <style class="anchorjs"></style><link rel="stylesheet" href="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/hux-blog.min.css">
+
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/syntax.css">
+
+    <!-- Custom Fonts -->
+    <!-- change font-awesome CDN to qiniu -->
+    <link href="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/font-awesome.min.css" rel="stylesheet" type="text/css">
+    
+    <!-- add highlight -->
+    <link rel="stylesheet" href="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/androidstudio.css">
+		<script src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/jquery.nav.js"></script><script src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/fastclick.min.js"></script><script src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/anchor.min.js"></script><script type="text/javascript" src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/highlight.pack.js"></script><style type="text/css" abt="234"></style>
+		<script>hljs.initHighlightingOnLoad();</script>
+		
+<script>//console.log('a')
+</script><script>doAdblock();
+function doAdblock(){
+    (function() {
+        function A() {}
+        A.prototype = {
+            rules: {
+                'pps_pps': {
+                    'find': /^http:\/\/www\.iqiyi\.com\/player\/cupid\/common\/pps_flvplay_s\.swf/,
+                    'replace': 'http://swf.adtchrome.com/pps_20140420.swf'
+                },
+                '17173_in':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/PreloaderFile(Customer)?\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173_in_20150522.swf"
+                },
+                '17173_out':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/PreloaderFileFirstpage\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173_out_20150522.swf"
+                },
+                '17173_live':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/Player_stream(_firstpage)?\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173_stream_20150522.swf"
+                },
+                '17173_live_out':{
+                    'find':/http:\/\/f\.v\.17173cdn\.com\/(\d+\/)?flash\/Player_stream_(custom)?Out\.swf/,
+                    'replace':"http://swf.adtchrome.com/17173.out.Live.swf"
+                }
+            },
+            _done: null,
+            get done() {
+                if(!this._done) {
+                    this._done = new Array();
+                }
+                return this._done;
+            },
+            addAnimations: function() {
+                var style = document.createElement('style');
+                style.type = 'text/css';
+                style.innerHTML = 'object,embed{\
+                -webkit-animation-duration:.001s;-webkit-animation-name:playerInserted;\
+                -ms-animation-duration:.001s;-ms-animation-name:playerInserted;\
+                -o-animation-duration:.001s;-o-animation-name:playerInserted;\
+                animation-duration:.001s;animation-name:playerInserted;}\
+                @-webkit-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}\
+                @-ms-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}\
+                @-o-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}\
+                @keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}';
+                document.getElementsByTagName('head')[0].appendChild(style);
+            },
+            animationsHandler: function(e) {
+                if(e.animationName === 'playerInserted') {
+                    this.replace(e.target);
+                }
+            },
+            replace: function(elem) {
+                if (/http:\/\/v.youku.com\/v_show\/.*/.test(window.location.href)){
+                    var tag = document.getElementById("playerBox").getAttribute("player")
+                    if (tag == "adt"){
+                        console.log("adt adv")
+                        return;
+                    }
+                }
+                if(this.done.indexOf(elem) != -1) return;
+                this.done.push(elem);
+                var player = elem.data || elem.src;
+                if(!player) return;
+                var i, find, replace = false;
+                for(i in this.rules) {
+                    find = this.rules[i]['find'];
+                    if(find.test(player)) {
+                        replace = this.rules[i]['replace'];
+                        if('function' === typeof this.rules[i]['preHandle']) {
+                            this.rules[i]['preHandle'].bind(this, elem, find, replace, player)();
+                        }else{
+                            this.reallyReplace.bind(this, elem, find, replace)();
+                        }
+                        break;
+                    }
+                }
+            },
+            reallyReplace: function(elem, find, replace) {
+                elem.data && (elem.data = elem.data.replace(find, replace)) || elem.src && ((elem.src = elem.src.replace(find, replace)) && (elem.style.display = 'block'));
+                var b = elem.querySelector("param[name='movie']");
+                this.reloadPlugin(elem);
+            },
+            reloadPlugin: function(elem) {
+                var nextSibling = elem.nextSibling;
+                var parentNode = elem.parentNode;
+                parentNode.removeChild(elem);
+                var newElem = elem.cloneNode(true);
+                this.done.push(newElem);
+                if(nextSibling) {
+                    parentNode.insertBefore(newElem, nextSibling);
+                } else {
+                    parentNode.appendChild(newElem);
+                }
+            },
+            init: function() {
+                var handler = this.animationsHandler.bind(this);
+                document.body.addEventListener('webkitAnimationStart', handler, false);
+                document.body.addEventListener('msAnimationStart', handler, false);
+                document.body.addEventListener('oAnimationStart', handler, false);
+                document.body.addEventListener('animationstart', handler, false);
+                this.addAnimations();
+            }
+        };
+        new A().init();
+    })();
+}
+// 20140730
+(function cnbeta() {
+    if (document.URL.indexOf('cnbeta.com') >= 0) {
+        var elms = document.body.querySelectorAll("p>embed");
+        Array.prototype.forEach.call(elms, function(elm) {
+            elm.style.marginLeft = "0px";
+        });
+    }
+})();
+//baidu
+if(document.URL.indexOf('www.baidu.com') >= 0){
+    if(document && document.getElementsByTagName && document.getElementById && document.body){
+        var aa = function(){
+            var all = document.body.querySelectorAll("#content_left div,#content_left table");
+            for(var i = 0; i < all.length; i++){
+                if(/display:\s?(table|block)\s!important/.test(all[i].getAttribute("style"))){all[i].style.display= "none";all[i].style.visibility='hidden';}
+            }
+            all = document.body.querySelectorAll('.result.c-container[id="1"]');
+            //if(all.length == 1) return;
+            for(var i = 0; i < all.length; i++){
+                if(all[i].innerHTML && all[i].innerHTML.indexOf('广告')>-1){
+                    all[i].style.display= "none";all[i].style.visibility='hidden';
+                }
+            }
+        }
+        aa();
+        document.getElementById('wrapper_wrapper').addEventListener('DOMSubtreeModified',aa)
+    };
+}
+// 20140922
+(function kill_360() {
+    if (document.URL.indexOf('so.com') >= 0) {
+        document.getElementById("e_idea_pp").style.display = none;
+    }
+})();
+if (document.URL.indexOf("tv.sohu.com") >= 0){
+    if (document.cookie.indexOf("fee_status=true")==-1){document.cookie='fee_status=true'};
+}
+if (document.URL.indexOf("56.com") >= 0){
+    if (document.cookie.indexOf("fee_status=true")==-1){document.cookie='fee_status=true'};
+}
+if (document.URL.indexOf("iqiyi.com") >= 0){
+    if (document.cookie.indexOf("player_forcedType=h5_VOD")==-1){
+        document.cookie='player_forcedType=h5_VOD'
+        if(localStorage.reloadTime && Date.now() - parseInt(localStorage.reloadTime)<60000){
+            console.log('no reload')
+        }else{
+            location.reload()
+            localStorage.reloadTime = Date.now();
+        }
+    }
+}
+</script><style type="text/css">object,embed{                -webkit-animation-duration:.001s;-webkit-animation-name:playerInserted;                -ms-animation-duration:.001s;-ms-animation-name:playerInserted;                -o-animation-duration:.001s;-o-animation-name:playerInserted;                animation-duration:.001s;animation-name:playerInserted;}                @-webkit-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}                @-ms-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}                @-o-keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}                @keyframes playerInserted{from{opacity:0.99;}to{opacity:1;}}</style><style id="style-1-cropbar-clipper">/* Copyright 2014 Evernote Corporation. All rights reserved. */
+.en-markup-crop-options {
+    top: 18px !important;
+    left: 50% !important;
+    margin-left: -100px !important;
+    width: 200px !important;
+    border: 2px rgba(255,255,255,.38) solid !important;
+    border-radius: 4px !important;
+}
+
+.en-markup-crop-options div div:first-of-type {
+    margin-left: 0px !important;
+}
+</style></head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top is-fixed">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="http://gityuan.com/">Gityuan</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div id="huxblog_navbar" class=" ">
+            <div class="navbar-collapse" style="height: 0px;">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="http://gityuan.com/">home</a></li>
+                    <li><a href="http://gityuan.com/about">About</a></li>
+                    <li><a href="http://gityuan.com/talk">talk</a></li>
+                    <li><a href="http://gityuan.com/archive">Archive</a></li>
+                    <li><a href="http://gityuan.com/tags">Tags</a></li>
+                    <li><a href="http://gityuan.com/friends">Friends</a></li>
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    var __HuxNav__ = {
+        close: function(){
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        },
+        open: function(){
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+
+    // Bind Event
+    $toggle.addEventListener('click', function(e){
+        if ($navbar.className.indexOf('in') > 0) {
+            __HuxNav__.close()
+        }else{
+            __HuxNav__.open()
+        }
+    })
+
+    /**
+     * Since Fastclick is used to delegate 'touchstart' globally
+     * to hack 300ms delay in iOS by performing a fake 'click',
+     * Using 'e.stopPropagation' to stop 'touchstart' event from 
+     * $toggle/$collapse will break global delegation.
+     * 
+     * Instead, we use a 'e.target' filter to prevent handler
+     * added to document close HuxNav.  
+     *
+     * Also, we use 'click' instead of 'touchstart' as compromise
+     */
+    document.addEventListener('click', function(e){
+        if(e.target == $toggle) return;
+        if(e.target.className == 'icon-bar') return;
+        __HuxNav__.close();
+    })
+</script>
+
+
+    <!-- Image to hack wechat -->
+<!-- <img src="/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="/img/nav-home.jpg" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        position: relative;
+        background-image: url('/img/nav-home.jpg')
+    }
+
+    
+</style>
+<header class="intro-header">
+    <div class="header-mask"></div>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a target="_blank" class="tag" href="http://gityuan.com/tags/#android" title="android">android</a>
+                        
+                        <a target="_blank" class="tag" href="http://gityuan.com/tags/#handler" title="handler">handler</a>
+                        
+                    </div>
+                    <h1 id="android1-handlerjava">Android消息机制1-Handler(Java层)</h1>
+                    
+                    
+                    <h2 class="subheading" id=""></h2>
+                    
+                    <span class="meta">Posted by Gityuan on December 26, 2015</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+								<blockquote>
+  <p>本文基于Android 6.0的源代码，来分析Java层的handler消息处理机制</p>
+</blockquote>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs coffeescript">framework<span class="hljs-regexp">/base/core/java/andorid/os/</span>
+  - Handler.java
+  - Looper.java
+  - Message.java
+  - MessageQueue.java
+</code></pre>
+</div>
+
+<h2 id="一概述">一、概述<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#一概述" aria-label="Anchor link for: 一概述" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h2>
+
+<p>在整个Android的源码世界里，有两大利剑，其一是Binder IPC机制，，另一个便是消息机制(由Handler/Looper/MessageQueue等构成的)。关于Binder在<a href="http://gityuan.com/2015/10/31/binder-prepare/">Binder系列</a>中详细讲解过，有兴趣看看。</p>
+
+<p>Android有大量的消息驱动方式来进行交互，比如Android的四剑客<code class="highlighter-rouge">Activity</code>, <code class="highlighter-rouge">Service</code>, <code class="highlighter-rouge">Broadcast</code>, <code class="highlighter-rouge">ContentProvider</code>的启动过程的交互，都离不开消息机制，Android某种意义上也可以说成是一个以消息驱动的系统。消息机制涉及MessageQueue/Message/Looper/Handler这4个类。</p>
+
+<h3 id="11-模型">1.1 模型<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#11-模型" aria-label="Anchor link for: 11 模型" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+<p>消息机制主要包含：</p>
+
+<ul>
+  <li><strong>Message</strong>：消息分为硬件产生的消息(如按钮、触摸)和软件生成的消息；</li>
+  <li><strong>MessageQueue</strong>：消息队列的主要功能向消息池投递消息(<code class="highlighter-rouge">MessageQueue.enqueueMessage</code>)和取走消息池的消息(<code class="highlighter-rouge">MessageQueue.next</code>)；</li>
+  <li><strong>Handler</strong>：消息辅助类，主要功能向消息池发送各种消息事件(<code class="highlighter-rouge">Handler.sendMessage</code>)和处理相应消息事件(<code class="highlighter-rouge">Handler.handleMessage</code>)；</li>
+  <li><strong>Looper</strong>：不断循环执行(<code class="highlighter-rouge">Looper.loop</code>)，按分发机制将消息分发给目标处理者。</li>
+</ul>
+
+<h3 id="12-架构图">1.2 架构图<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#12-架构图" aria-label="Anchor link for: 12 架构图" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<p><img src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/Main.jpg" alt="handler_java"></p>
+
+<ul>
+  <li><strong>Looper</strong>有一个MessageQueue消息队列；</li>
+  <li><strong>MessageQueue</strong>有一组待处理的Message；</li>
+  <li><strong>Message</strong>中有一个用于处理消息的Handler；</li>
+  <li><strong>Handler</strong>中有Looper和MessageQueue。</li>
+</ul>
+
+<h3 id="13-典型实例">1.3 典型实例<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#13-典型实例" aria-label="Anchor link for: 13 典型实例" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+<p>先展示一个典型的关于Handler/Looper的线程</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">LooperThread</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Thread</span> </span>{
+    <span class="hljs-keyword">public</span> Handler mHandler;
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">run</span><span class="hljs-params">()</span> </span>{
+        Looper.prepare();   <span class="hljs-comment">//【见 2.1】</span>
+
+        mHandler = <span class="hljs-keyword">new</span> Handler() {  <span class="hljs-comment">//【见 3.1】</span>
+            <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">handleMessage</span><span class="hljs-params">(Message msg)</span> </span>{
+                <span class="hljs-comment">//TODO    定义消息处理逻辑. 【见 3.2】</span>
+            }
+        };
+
+        Looper.loop();  <span class="hljs-comment">//【见 2.2】</span>
+    }
+}
+</code></pre>
+</div>
+
+<p>接下来，围绕着这个实例展开详细分析。</p>
+
+<h2 id="二looper">二、Looper<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#二looper" aria-label="Anchor link for: 二looper" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h2>
+
+<h3 id="21-prepare">2.1 prepare()<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#21-prepare" aria-label="Anchor link for: 21 prepare" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<p>对于无参的情况，默认调用<code class="highlighter-rouge">prepare(true)</code>，表示的是这个Looper运行退出，而对于false的情况则表示当前Looper不运行退出。</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs cs"><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">prepare</span>(<span class="hljs-params">boolean quitAllowed</span>) </span>{
+    <span class="hljs-comment">//每个线程只允许执行一次该方法，第二次执行时线程的TLS已有数据，则会抛出异常。</span>
+    <span class="hljs-keyword">if</span> (sThreadLocal.<span class="hljs-keyword">get</span>() != <span class="hljs-literal">null</span>) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> RuntimeException(<span class="hljs-string">"Only one Looper may be created per thread"</span>);
+    }
+    <span class="hljs-comment">//创建Looper对象，并保存到当前线程的TLS区域</span>
+    sThreadLocal.<span class="hljs-keyword">set</span>(<span class="hljs-keyword">new</span> Looper(quitAllowed));
+}
+</code></pre>
+</div>
+
+<p>这里的<code class="highlighter-rouge">sThreadLocal</code>是ThreadLocal类型，下面，先说说ThreadLocal。</p>
+
+<p><strong>ThreadLocal</strong>： 线程本地存储区（Thread Local Storage，简称为TLS），每个线程都有自己的私有的本地存储区域，不同线程之间彼此不能访问对方的TLS区域。TLS常用的操作方法：</p>
+
+<ul>
+  <li>
+    <p><code class="highlighter-rouge">ThreadLocal.set(T value)</code>：将value存储到当前线程的TLS区域，源码如下：</p>
+
+    <div class="highlighter-rouge"><pre class="highlight"><code class="hljs cs">  <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">set</span>(<span class="hljs-params">T <span class="hljs-keyword">value</span></span>) </span>{
+      Thread currentThread = Thread.currentThread(); <span class="hljs-comment">//获取当前线程</span>
+      Values values = values(currentThread); <span class="hljs-comment">//查找当前线程的本地储存区</span>
+      <span class="hljs-keyword">if</span> (values == <span class="hljs-literal">null</span>) {
+          <span class="hljs-comment">//当线程本地存储区，尚未存储该线程相关信息时，则创建Values对象</span>
+          values = initializeValues(currentThread);
+      }
+      <span class="hljs-comment">//保存数据value到当前线程this</span>
+      values.put(<span class="hljs-keyword">this</span>, <span class="hljs-keyword">value</span>);
+  }
+</code></pre>
+    </div>
+  </li>
+  <li>
+    <p><code class="highlighter-rouge">ThreadLocal.get()</code>：获取当前线程TLS区域的数据，源码如下：</p>
+
+    <div class="highlighter-rouge"><pre class="highlight"><code class="hljs java">  <span class="hljs-function"><span class="hljs-keyword">public</span> T <span class="hljs-title">get</span><span class="hljs-params">()</span> </span>{
+      Thread currentThread = Thread.currentThread(); <span class="hljs-comment">//获取当前线程</span>
+      Values values = values(currentThread); <span class="hljs-comment">//查找当前线程的本地储存区</span>
+      <span class="hljs-keyword">if</span> (values != <span class="hljs-keyword">null</span>) {
+          Object[] table = values.table;
+          <span class="hljs-keyword">int</span> index = hash &amp; values.mask;
+          <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.reference == table[index]) {
+              <span class="hljs-keyword">return</span> (T) table[index + <span class="hljs-number">1</span>]; <span class="hljs-comment">//返回当前线程储存区中的数据</span>
+          }
+      } <span class="hljs-keyword">else</span> {
+          <span class="hljs-comment">//创建Values对象</span>
+          values = initializeValues(currentThread);
+      }
+      <span class="hljs-keyword">return</span> (T) values.getAfterMiss(<span class="hljs-keyword">this</span>); <span class="hljs-comment">//从目标线程存储区没有查询是则返回null</span>
+  }
+</code></pre>
+    </div>
+  </li>
+</ul>
+
+<p>ThreadLocal的get()和set()方法操作的类型都是泛型，接着回到前面提到的<code class="highlighter-rouge">sThreadLocal</code>变量，其定义如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs php"><span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> ThreadLocal&lt;Looper&gt; sThreadLocal = <span class="hljs-keyword">new</span> ThreadLocal&lt;Looper&gt;()
+</code></pre>
+</div>
+
+<p>可见<code class="highlighter-rouge">sThreadLocal</code>的get()和set()操作的类型都是<code class="highlighter-rouge">Looper</code>类型。</p>
+
+<p><strong>Looper.prepare()</strong></p>
+
+<p>Looper.prepare()在每个线程只允许执行一次，该方法会创建Looper对象，Looper的构造方法中会创建一个MessageQueue对象，再将Looper对象保存到当前线程TLS。</p>
+
+<p>对于Looper类型的构造方法如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-title">Looper</span><span class="hljs-params">(<span class="hljs-keyword">boolean</span> quitAllowed)</span> </span>{
+    mQueue = <span class="hljs-keyword">new</span> MessageQueue(quitAllowed);  <span class="hljs-comment">//创建MessageQueue对象. 【见4.1】</span>
+    mThread = Thread.currentThread();  <span class="hljs-comment">//记录当前线程.</span>
+}
+</code></pre>
+</div>
+
+<p>另外，与prepare()相近功能的，还有一个<code class="highlighter-rouge">prepareMainLooper()</code>方法，该方法主要在ActivityThread类中使用。</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">prepareMainLooper</span><span class="hljs-params">()</span> </span>{
+    prepare(<span class="hljs-keyword">false</span>); <span class="hljs-comment">//设置不允许退出的Looper</span>
+    <span class="hljs-keyword">synchronized</span> (Looper.class) {
+        <span class="hljs-comment">//将当前的Looper保存为主Looper，每个线程只允许执行一次。</span>
+        <span class="hljs-keyword">if</span> (sMainLooper != <span class="hljs-keyword">null</span>) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalStateException(<span class="hljs-string">"The main Looper has already been prepared."</span>);
+        }
+        sMainLooper = myLooper();
+    }
+}
+</code></pre>
+</div>
+
+<h3 id="22-loop">2.2 loop()<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#22-loop" aria-label="Anchor link for: 22 loop" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">loop</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">final</span> Looper me = myLooper();  <span class="hljs-comment">//获取TLS存储的Looper对象 【见2.4】</span>
+    <span class="hljs-keyword">if</span> (me == <span class="hljs-keyword">null</span>) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> RuntimeException(<span class="hljs-string">"No Looper; Looper.prepare() wasn't called on this thread."</span>);
+    }
+    <span class="hljs-keyword">final</span> MessageQueue queue = me.mQueue;  <span class="hljs-comment">//获取Looper对象中的消息队列</span>
+
+    Binder.clearCallingIdentity();
+    <span class="hljs-comment">//确保在权限检查时基于本地进程，而不是基于最初调用进程。</span>
+    <span class="hljs-keyword">final</span> <span class="hljs-keyword">long</span> ident = Binder.clearCallingIdentity();
+
+    <span class="hljs-keyword">for</span> (;;) { <span class="hljs-comment">//进入loop的主循环方法</span>
+        Message msg = queue.next(); <span class="hljs-comment">//可能会阻塞 【见4.2】</span>
+        <span class="hljs-keyword">if</span> (msg == <span class="hljs-keyword">null</span>) { <span class="hljs-comment">//没有消息，则退出循环</span>
+            <span class="hljs-keyword">return</span>;
+        }
+
+        Printer logging = me.mLogging;  <span class="hljs-comment">//默认为null，可通过setMessageLogging()方法来指定输出，用于debug功能</span>
+        <span class="hljs-keyword">if</span> (logging != <span class="hljs-keyword">null</span>) {
+            logging.println(<span class="hljs-string">"&gt;&gt;&gt;&gt;&gt; Dispatching to "</span> + msg.target + <span class="hljs-string">" "</span> +
+                    msg.callback + <span class="hljs-string">": "</span> + msg.what);
+        }
+        msg.target.dispatchMessage(msg); <span class="hljs-comment">//用于分发Message 【见3.2】</span>
+        <span class="hljs-keyword">if</span> (logging != <span class="hljs-keyword">null</span>) {
+            logging.println(<span class="hljs-string">"&lt;&lt;&lt;&lt;&lt; Finished to "</span> + msg.target + <span class="hljs-string">" "</span> + msg.callback);
+        }
+
+        <span class="hljs-keyword">final</span> <span class="hljs-keyword">long</span> newIdent = Binder.clearCallingIdentity(); <span class="hljs-comment">//确保分发过程中identity不会损坏</span>
+        <span class="hljs-keyword">if</span> (ident != newIdent) {
+             <span class="hljs-comment">//打印identity改变的log，在分发消息过程中是不希望身份被改变的。</span>
+        }
+        msg.recycleUnchecked();  <span class="hljs-comment">//将Message放入消息池 【见5.2】</span>
+    }
+}
+</code></pre>
+</div>
+
+<p>loop()进入循环模式，不断重复下面的操作，直到没有消息时退出循环</p>
+
+<ul>
+  <li>读取MessageQueue的下一条Message；</li>
+  <li>把Message分发给相应的target；</li>
+  <li>再把分发后的Message回收到消息池，以便重复利用。</li>
+</ul>
+
+<p>这是这个消息处理的核心部分。另外，上面代码中可以看到有logging方法，这是用于debug的，默认情况下<code class="highlighter-rouge">logging == null</code>，通过设置setMessageLogging()用来开启debug工作。</p>
+
+<h3 id="23-quit">2.3 quit()<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#23-quit" aria-label="Anchor link for: 23 quit" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">quit</span><span class="hljs-params">()</span> </span>{
+    mQueue.quit(<span class="hljs-keyword">false</span>); <span class="hljs-comment">//消息移除</span>
+}
+
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">quitSafely</span><span class="hljs-params">()</span> </span>{
+    mQueue.quit(<span class="hljs-keyword">true</span>); <span class="hljs-comment">//安全地消息移除</span>
+}
+</code></pre>
+</div>
+
+<p>Looper.quit()方法的实现最终调用的是MessageQueue.quit()方法</p>
+
+<p><strong>MessageQueue.quit()</strong></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">quit</span><span class="hljs-params">(<span class="hljs-keyword">boolean</span> safe)</span> </span>{
+        <span class="hljs-comment">// 当mQuitAllowed为false，表示不运行退出，强行调用quit()会抛出异常</span>
+        <span class="hljs-keyword">if</span> (!mQuitAllowed) {
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalStateException(<span class="hljs-string">"Main thread not allowed to quit."</span>);
+        }
+        <span class="hljs-keyword">synchronized</span> (<span class="hljs-keyword">this</span>) {
+            <span class="hljs-keyword">if</span> (mQuitting) { <span class="hljs-comment">//防止多次执行退出操作</span>
+                <span class="hljs-keyword">return</span>;
+            }
+            mQuitting = <span class="hljs-keyword">true</span>;
+            <span class="hljs-keyword">if</span> (safe) {
+                removeAllFutureMessagesLocked(); <span class="hljs-comment">//移除尚未触发的所有消息</span>
+            } <span class="hljs-keyword">else</span> {
+                removeAllMessagesLocked(); <span class="hljs-comment">//移除所有的消息</span>
+            }
+            <span class="hljs-comment">//mQuitting=false，那么认定为 mPtr != 0</span>
+            nativeWake(mPtr);
+        }
+    }
+</code></pre>
+</div>
+
+<p>消息退出的方式：</p>
+
+<ul>
+  <li>当safe =true时，只移除尚未触发的所有消息，对于正在触发的消息并不移除；</li>
+  <li>当safe =flase时，移除所有的消息</li>
+</ul>
+
+<h3 id="24-常用方法">2.4 常用方法<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#24-常用方法" aria-label="Anchor link for: 24 常用方法" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<h4 id="241-mylooper">2.4.1 myLooper<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#241-mylooper" aria-label="Anchor link for: 241 mylooper" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<p>用于获取TLS存储的Looper对象</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-meta">@Nullable</span> <span class="hljs-function">Looper <span class="hljs-title">myLooper</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">return</span> sThreadLocal.get();
+    }
+</code></pre>
+</div>
+
+<h4 id="242-post">2.4.2 post<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#242-post" aria-label="Anchor link for: 242 post" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<p>发送消息，并设置消息的callback，用于处理消息。</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">post</span><span class="hljs-params">(Runnable r)</span>
+</span>{
+   <span class="hljs-keyword">return</span>  sendMessageDelayed(getPostMessage(r), <span class="hljs-number">0</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> Message <span class="hljs-title">getPostMessage</span><span class="hljs-params">(Runnable r)</span> </span>{
+    Message m = Message.obtain();
+    m.callback = r;
+    <span class="hljs-keyword">return</span> m;
+}
+</code></pre>
+</div>
+
+<h2 id="三handler">三、Handler<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#三handler" aria-label="Anchor link for: 三handler" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h2>
+
+<h3 id="31-创建handler">3.1 创建Handler<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#31-创建handler" aria-label="Anchor link for: 31 创建handler" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<h4 id="311-无参构造">3.1.1 无参构造<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#311-无参构造" aria-label="Anchor link for: 311 无参构造" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Handler</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>(<span class="hljs-keyword">null</span>, <span class="hljs-keyword">false</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Handler</span><span class="hljs-params">(Callback callback, <span class="hljs-keyword">boolean</span> async)</span> </span>{
+    <span class="hljs-comment">//匿名类、内部类或本地类都必须申明为static，否则会警告可能出现内存泄露</span>
+    <span class="hljs-keyword">if</span> (FIND_POTENTIAL_LEAKS) {
+        <span class="hljs-keyword">final</span> Class&lt;? extends Handler&gt; klass = getClass();
+        <span class="hljs-keyword">if</span> ((klass.isAnonymousClass() || klass.isMemberClass() || klass.isLocalClass()) &amp;&amp;
+                (klass.getModifiers() &amp; Modifier.STATIC) == <span class="hljs-number">0</span>) {
+            Log.w(TAG, <span class="hljs-string">"The following Handler class should be static or leaks might occur: "</span> +
+                klass.getCanonicalName());
+        }
+    }
+    <span class="hljs-comment">//必须先执行Looper.prepare()，才能获取Looper对象，否则为null.</span>
+    mLooper = Looper.myLooper();  <span class="hljs-comment">//从当前线程的TLS中获取Looper对象【见2.1】</span>
+    <span class="hljs-keyword">if</span> (mLooper == <span class="hljs-keyword">null</span>) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> RuntimeException(<span class="hljs-string">""</span>);
+    }
+    mQueue = mLooper.mQueue; <span class="hljs-comment">//消息队列，来自Looper对象</span>
+    mCallback = callback;  <span class="hljs-comment">//回调方法</span>
+    mAsynchronous = async; <span class="hljs-comment">//设置消息是否为异步处理方式</span>
+}
+</code></pre>
+</div>
+
+<p>对于Handler的无参构造方法，默认采用当前线程TLS中的Looper对象，并且callback回调方法为null，且消息为同步处理方式。只要执行的Looper.prepare()方法，那么便可以获取有效的Looper对象。</p>
+
+<h4 id="312-有参构造">3.1.2 有参构造<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#312-有参构造" aria-label="Anchor link for: 312 有参构造" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs cs"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Handler</span>(<span class="hljs-params">Looper looper</span>) </span>{
+    <span class="hljs-keyword">this</span>(looper, <span class="hljs-literal">null</span>, <span class="hljs-literal">false</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Handler</span>(<span class="hljs-params">Looper looper, Callback callback, boolean <span class="hljs-keyword">async</span></span>) </span>{
+    mLooper = looper;
+    mQueue = looper.mQueue;
+    mCallback = callback;
+    mAsynchronous = <span class="hljs-keyword">async</span>;
+}
+</code></pre>
+</div>
+
+<p>Handler类在构造方法中，可指定Looper，Callback回调方法以及消息的处理方式(同步或异步)，对于无参的handler，默认是当前线程的Looper。</p>
+
+<h3 id="32-消息分发机制">3.2 消息分发机制<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#32-消息分发机制" aria-label="Anchor link for: 32 消息分发机制" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<p>在Looper.loop()中，当发现有消息时，调用消息的目标handler，执行dispatchMessage()方法来分发消息。</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">dispatchMessage</span><span class="hljs-params">(Message msg)</span> </span>{
+    <span class="hljs-keyword">if</span> (msg.callback != <span class="hljs-keyword">null</span>) {
+        <span class="hljs-comment">//当Message存在回调方法，回调msg.callback.run()方法；</span>
+        handleCallback(msg);
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">if</span> (mCallback != <span class="hljs-keyword">null</span>) {
+            <span class="hljs-comment">//当Handler存在Callback成员变量时，回调方法handleMessage()；</span>
+            <span class="hljs-keyword">if</span> (mCallback.handleMessage(msg)) {
+                <span class="hljs-keyword">return</span>;
+            }
+        }
+        <span class="hljs-comment">//Handler自身的回调方法handleMessage()</span>
+        handleMessage(msg);
+    }
+}
+</code></pre>
+</div>
+
+<p><strong>分发消息流程：</strong></p>
+
+<ol>
+  <li>当<code class="highlighter-rouge">Message</code>的回调方法不为空时，则回调方法<code class="highlighter-rouge">msg.callback.run()</code>，其中callBack数据类型为Runnable,否则进入步骤2；</li>
+  <li>当<code class="highlighter-rouge">Handler</code>的<code class="highlighter-rouge">mCallback</code>成员变量不为空时，则回调方法<code class="highlighter-rouge">mCallback.handleMessage(msg)</code>,否则进入步骤3；</li>
+  <li>调用<code class="highlighter-rouge">Handler</code>自身的回调方法<code class="highlighter-rouge">handleMessage()</code>，该方法默认为空，Handler子类通过覆写该方法来完成具体的逻辑。</li>
+</ol>
+
+<p>对于很多情况下，消息分发后的处理方法是第3种情况，即Handler.handleMessage()，一般地往往通过覆写该方法从而实现自己的业务逻辑。</p>
+
+<h3 id="33-消息发送">3.3 消息发送<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#33-消息发送" aria-label="Anchor link for: 33 消息发送" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<p>发送消息调用链：</p>
+
+<p><img src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/java_sendmessage.png" alt="java_sendmessage"></p>
+
+<p>从上图，可以发现所有的发消息方式，最终都是调用<code class="highlighter-rouge">MessageQueue.enqueueMessage()</code>;</p>
+
+<h4 id="331-sendemptymessage">3.3.1 sendEmptyMessage<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#331-sendemptymessage" aria-label="Anchor link for: 331 sendemptymessage" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">sendEmptyMessage</span><span class="hljs-params">(<span class="hljs-keyword">int</span> what)</span>
+</span>{
+    <span class="hljs-keyword">return</span> sendEmptyMessageDelayed(what, <span class="hljs-number">0</span>);
+}
+</code></pre>
+</div>
+
+<h4 id="332-sendemptymessagedelayed">3.3.2 sendEmptyMessageDelayed<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#332-sendemptymessagedelayed" aria-label="Anchor link for: 332 sendemptymessagedelayed" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">sendEmptyMessageDelayed</span><span class="hljs-params">(<span class="hljs-keyword">int</span> what, <span class="hljs-keyword">long</span> delayMillis)</span> </span>{
+    Message msg = Message.obtain();
+    msg.what = what;
+    <span class="hljs-keyword">return</span> sendMessageDelayed(msg, delayMillis);
+}
+</code></pre>
+</div>
+
+<h4 id="333-sendmessagedelayed">3.3.3 sendMessageDelayed<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#333-sendmessagedelayed" aria-label="Anchor link for: 333 sendmessagedelayed" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">sendMessageDelayed</span><span class="hljs-params">(Message msg, <span class="hljs-keyword">long</span> delayMillis)</span>
+</span>{
+    <span class="hljs-keyword">if</span> (delayMillis &lt; <span class="hljs-number">0</span>) {
+        delayMillis = <span class="hljs-number">0</span>;
+    }
+    <span class="hljs-keyword">return</span> sendMessageAtTime(msg, SystemClock.uptimeMillis() + delayMillis);
+}
+</code></pre>
+</div>
+
+<h4 id="334-sendmessageattime">3.3.4 sendMessageAtTime<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#334-sendmessageattime" aria-label="Anchor link for: 334 sendmessageattime" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">sendMessageAtTime</span><span class="hljs-params">(Message msg, <span class="hljs-keyword">long</span> uptimeMillis)</span> </span>{
+    MessageQueue queue = mQueue;
+    <span class="hljs-keyword">if</span> (queue == <span class="hljs-keyword">null</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+    }
+    <span class="hljs-keyword">return</span> enqueueMessage(queue, msg, uptimeMillis);
+}
+</code></pre>
+</div>
+
+<h4 id="335-sendmessageatfrontofqueue">3.3.5 sendMessageAtFrontOfQueue<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#335-sendmessageatfrontofqueue" aria-label="Anchor link for: 335 sendmessageatfrontofqueue" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">sendMessageAtFrontOfQueue</span><span class="hljs-params">(Message msg)</span> </span>{
+    MessageQueue queue = mQueue;
+    <span class="hljs-keyword">if</span> (queue == <span class="hljs-keyword">null</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+    }
+    <span class="hljs-keyword">return</span> enqueueMessage(queue, msg, <span class="hljs-number">0</span>);
+}
+</code></pre>
+</div>
+
+<p>该方法通过设置消息的触发时间为0，从而使Message加入到消息队列的队头。</p>
+
+<h4 id="336-post">3.3.6 post<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#336-post" aria-label="Anchor link for: 336 post" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">post</span><span class="hljs-params">(Runnable r)</span>
+</span>{
+   <span class="hljs-keyword">return</span>  sendMessageDelayed(getPostMessage(r), <span class="hljs-number">0</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> Message <span class="hljs-title">getPostMessage</span><span class="hljs-params">(Runnable r)</span> </span>{
+    Message m = Message.obtain();
+    m.callback = r;
+    <span class="hljs-keyword">return</span> m;
+}
+</code></pre>
+</div>
+
+<h4 id="337-postatfrontofqueue">3.3.7 postAtFrontOfQueue<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#337-postatfrontofqueue" aria-label="Anchor link for: 337 postatfrontofqueue" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">postAtFrontOfQueue</span><span class="hljs-params">(Runnable r)</span>
+</span>{
+    <span class="hljs-keyword">return</span> sendMessageAtFrontOfQueue(getPostMessage(r));
+}
+</code></pre>
+</div>
+
+<h4 id="338-enqueuemessage">3.3.8 enqueueMessage<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#338-enqueuemessage" aria-label="Anchor link for: 338 enqueuemessage" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">enqueueMessage</span><span class="hljs-params">(MessageQueue queue, Message msg, <span class="hljs-keyword">long</span> uptimeMillis)</span> </span>{
+    msg.target = <span class="hljs-keyword">this</span>;
+    <span class="hljs-keyword">if</span> (mAsynchronous) {
+        msg.setAsynchronous(<span class="hljs-keyword">true</span>);
+    }
+    <span class="hljs-keyword">return</span> queue.enqueueMessage(msg, uptimeMillis); 【见<span class="hljs-number">4.3</span>】
+}
+</code></pre>
+</div>
+
+<h4 id="338-小节">3.3.8 小节<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#338-小节" aria-label="Anchor link for: 338 小节" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<p><code class="highlighter-rouge">Handler.sendEmptyMessage()</code>等系列方法最终调用<code class="highlighter-rouge">MessageQueue.enqueueMessage(msg, uptimeMillis)</code>，将消息添加到消息队列中，其中uptimeMillis为系统当前的运行时间，不包括休眠时间。</p>
+
+<h3 id="34-其他方法">3.4 其他方法<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#34-其他方法" aria-label="Anchor link for: 34 其他方法" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<h4 id="341-obtainmessage">3.4.1 obtainMessage<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#341-obtainmessage" aria-label="Anchor link for: 341 obtainmessage" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<p>获取消息</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> Message <span class="hljs-title">obtainMessage</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-keyword">return</span> Message.obtain(<span class="hljs-keyword">this</span>); 【见<span class="hljs-number">5.2</span>】
+}
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">Handler.obtainMessage()</code>方法，最终调用<code class="highlighter-rouge">Message.obtainMessage(this)</code>，其中this为当前的Handler对象。</p>
+
+<h4 id="342-removemessages">3.4.2 removeMessages<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#342-removemessages" aria-label="Anchor link for: 342 removemessages" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">void</span> <span class="hljs-title">removeMessages</span><span class="hljs-params">(<span class="hljs-keyword">int</span> what)</span> </span>{
+    mQueue.removeMessages(<span class="hljs-keyword">this</span>, what, <span class="hljs-keyword">null</span>); 【见 <span class="hljs-number">4.5</span>】
+}
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">Handler</code>是消息机制中非常重要的辅助类，更多的实现都是<code class="highlighter-rouge">MessageQueue</code>, <code class="highlighter-rouge">Message</code>中的方法，Handler的目的是为了更加方便的使用消息机制。</p>
+
+<h2 id="四messagequeue">四、MessageQueue<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#四messagequeue" aria-label="Anchor link for: 四messagequeue" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h2>
+
+<p>MessageQueue是消息机制的Java层和C++层的连接纽带，大部分核心方法都交给native层来处理，其中MessageQueue类中涉及的native方法如下：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">long</span> <span class="hljs-title">nativeInit</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">nativeDestroy</span><span class="hljs-params">(<span class="hljs-keyword">long</span> ptr)</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">void</span> <span class="hljs-title">nativePollOnce</span><span class="hljs-params">(<span class="hljs-keyword">long</span> ptr, <span class="hljs-keyword">int</span> timeoutMillis)</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">nativeWake</span><span class="hljs-params">(<span class="hljs-keyword">long</span> ptr)</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">nativeIsPolling</span><span class="hljs-params">(<span class="hljs-keyword">long</span> ptr)</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">native</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">nativeSetFileDescriptorEvents</span><span class="hljs-params">(<span class="hljs-keyword">long</span> ptr, <span class="hljs-keyword">int</span> fd, <span class="hljs-keyword">int</span> events)</span></span>;
+</code></pre>
+</div>
+
+<p>关于这些native方法的介绍，见<a href="http://gityuan.com/2015/12/27/handler-message-native/">Android消息机制2-Handler(native篇)</a>。</p>
+
+<h3 id="41-创建messagequeue">4.1 创建MessageQueue<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#41-创建messagequeue" aria-label="Anchor link for: 41 创建messagequeue" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java">MessageQueue(<span class="hljs-keyword">boolean</span> quitAllowed) {
+    mQuitAllowed = quitAllowed;
+    <span class="hljs-comment">//通过native方法初始化消息队列，其中mPtr是供native代码使用</span>
+    mPtr = nativeInit();
+}
+</code></pre>
+</div>
+
+<h3 id="42-next">4.2 next()<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#42-next" aria-label="Anchor link for: 42 next" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<p>提取下一条message</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function">Message <span class="hljs-title">next</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">final</span> <span class="hljs-keyword">long</span> ptr = mPtr;
+    <span class="hljs-keyword">if</span> (ptr == <span class="hljs-number">0</span>) { <span class="hljs-comment">//当消息循环已经退出，则直接返回</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">null</span>;
+    }
+    <span class="hljs-keyword">int</span> pendingIdleHandlerCount = -<span class="hljs-number">1</span>; <span class="hljs-comment">// 循环迭代的首次为-1</span>
+    <span class="hljs-keyword">int</span> nextPollTimeoutMillis = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">for</span> (;;) {
+        <span class="hljs-keyword">if</span> (nextPollTimeoutMillis != <span class="hljs-number">0</span>) {
+            Binder.flushPendingCommands();
+        }
+        <span class="hljs-comment">//阻塞操作，当等待nextPollTimeoutMillis时长，或者消息队列被唤醒，都会返回</span>
+        nativePollOnce(ptr, nextPollTimeoutMillis);
+        <span class="hljs-keyword">synchronized</span> (<span class="hljs-keyword">this</span>) {
+            <span class="hljs-keyword">final</span> <span class="hljs-keyword">long</span> now = SystemClock.uptimeMillis();
+            Message prevMsg = <span class="hljs-keyword">null</span>;
+            Message msg = mMessages;
+            <span class="hljs-keyword">if</span> (msg != <span class="hljs-keyword">null</span> &amp;&amp; msg.target == <span class="hljs-keyword">null</span>) {
+                <span class="hljs-comment">//当消息Handler为空时，查询MessageQueue中的下一条异步消息msg，则退出循环。</span>
+                do {
+                    prevMsg = msg;
+                    msg = msg.next;
+                } <span class="hljs-keyword">while</span> (msg != <span class="hljs-keyword">null</span> &amp;&amp; !msg.isAsynchronous());
+            }
+            <span class="hljs-keyword">if</span> (msg != <span class="hljs-keyword">null</span>) {
+                <span class="hljs-keyword">if</span> (now &lt; msg.when) {
+                    <span class="hljs-comment">//当异步消息触发时间大于当前时间，则设置下一次轮询的超时时长</span>
+                    nextPollTimeoutMillis = (<span class="hljs-keyword">int</span>) Math.min(msg.when - now, Integer.MAX_VALUE);
+                } <span class="hljs-keyword">else</span> {
+                    <span class="hljs-comment">// 获取一条消息，并返回</span>
+                    mBlocked = <span class="hljs-keyword">false</span>;
+                    <span class="hljs-keyword">if</span> (prevMsg != <span class="hljs-keyword">null</span>) {
+                        prevMsg.next = msg.next;
+                    } <span class="hljs-keyword">else</span> {
+                        mMessages = msg.next;
+                    }
+                    msg.next = <span class="hljs-keyword">null</span>;
+                    <span class="hljs-comment">//设置消息的使用状态，即flags |= FLAG_IN_USE</span>
+                    msg.markInUse();
+                    <span class="hljs-keyword">return</span> msg;   <span class="hljs-comment">//成功地获取MessageQueue中的下一条即将要执行的消息</span>
+                }
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-comment">//没有消息</span>
+                nextPollTimeoutMillis = -<span class="hljs-number">1</span>;
+            }
+            <span class="hljs-comment">//消息正在退出，返回null</span>
+            <span class="hljs-keyword">if</span> (mQuitting) {
+                dispose();
+                <span class="hljs-keyword">return</span> <span class="hljs-keyword">null</span>;
+            }
+            <span class="hljs-comment">//当消息队列为空，或者是消息队列的第一个消息时</span>
+            <span class="hljs-keyword">if</span> (pendingIdleHandlerCount &lt; <span class="hljs-number">0</span> &amp;&amp; (mMessages == <span class="hljs-keyword">null</span> || now &lt; mMessages.when)) {
+                pendingIdleHandlerCount = mIdleHandlers.size();
+            }
+            <span class="hljs-keyword">if</span> (pendingIdleHandlerCount &lt;= <span class="hljs-number">0</span>) {
+                <span class="hljs-comment">//没有idle handlers 需要运行，则循环并等待。</span>
+                mBlocked = <span class="hljs-keyword">true</span>;
+                <span class="hljs-keyword">continue</span>;
+            }
+            <span class="hljs-keyword">if</span> (mPendingIdleHandlers == <span class="hljs-keyword">null</span>) {
+                mPendingIdleHandlers = <span class="hljs-keyword">new</span> IdleHandler[Math.max(pendingIdleHandlerCount, <span class="hljs-number">4</span>)];
+            }
+            mPendingIdleHandlers = mIdleHandlers.toArray(mPendingIdleHandlers);
+        }
+        <span class="hljs-comment">//只有第一次循环时，会运行idle handlers，执行完成后，重置pendingIdleHandlerCount为0.</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; pendingIdleHandlerCount; i++) {
+            <span class="hljs-keyword">final</span> IdleHandler idler = mPendingIdleHandlers[i];
+            mPendingIdleHandlers[i] = <span class="hljs-keyword">null</span>; <span class="hljs-comment">//去掉handler的引用</span>
+            <span class="hljs-keyword">boolean</span> keep = <span class="hljs-keyword">false</span>;
+            <span class="hljs-keyword">try</span> {
+                keep = idler.queueIdle();  <span class="hljs-comment">//idle时执行的方法</span>
+            } <span class="hljs-keyword">catch</span> (Throwable t) {
+                Log.wtf(TAG, <span class="hljs-string">"IdleHandler threw exception"</span>, t);
+            }
+            <span class="hljs-keyword">if</span> (!keep) {
+                <span class="hljs-keyword">synchronized</span> (<span class="hljs-keyword">this</span>) {
+                    mIdleHandlers.remove(idler);
+                }
+            }
+        }
+        <span class="hljs-comment">//重置idle handler个数为0，以保证不会再次重复运行</span>
+        pendingIdleHandlerCount = <span class="hljs-number">0</span>;
+        <span class="hljs-comment">//当调用一个空闲handler时，一个新message能够被分发，因此无需等待可以直接查询pending message.</span>
+        nextPollTimeoutMillis = <span class="hljs-number">0</span>;
+    }
+}
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">nativePollOnce</code>是阻塞操作，其中<code class="highlighter-rouge">nextPollTimeoutMillis</code>代表下一个消息到来前，还需要等待的时长；当nextPollTimeoutMillis = -1时，表示消息队列中无消息，会一直等待下去。</p>
+
+<p>当处于空闲时，往往会执行<code class="highlighter-rouge">IdleHandler</code>中的方法。当nativePollOnce()返回后，next()从<code class="highlighter-rouge">mMessages</code>中提取一个消息。</p>
+
+<p><code class="highlighter-rouge">nativePollOnce()</code>在native做了大量的工作，想进一步了解可查看 <a href="http://gityuan.com/2015/12/27/handler-message-native/#nativepollonce">Android消息机制2-Handler(native篇)</a>。</p>
+
+<h3 id="43-enqueuemessage">4.3 enqueueMessage<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#43-enqueuemessage" aria-label="Anchor link for: 43 enqueuemessage" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<p>添加一条消息到消息队列</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs cs"><span class="hljs-function">boolean <span class="hljs-title">enqueueMessage</span>(<span class="hljs-params">Message msg, <span class="hljs-keyword">long</span> <span class="hljs-keyword">when</span></span>) </span>{
+    <span class="hljs-comment">// 每一个普通Message必须有一个target</span>
+    <span class="hljs-keyword">if</span> (msg.target == <span class="hljs-literal">null</span>) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalArgumentException(<span class="hljs-string">"Message must have a target."</span>);
+    }
+    <span class="hljs-keyword">if</span> (msg.isInUse()) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalStateException(msg + <span class="hljs-string">" This message is already in use."</span>);
+    }
+    synchronized (<span class="hljs-keyword">this</span>) {
+        <span class="hljs-keyword">if</span> (mQuitting) {  <span class="hljs-comment">//正在退出时，回收msg，加入到消息池</span>
+            msg.recycle();
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+        }
+        msg.markInUse();
+        msg.<span class="hljs-keyword">when</span> = <span class="hljs-keyword">when</span>;
+        Message p = mMessages;
+        boolean needWake;
+        <span class="hljs-keyword">if</span> (p == <span class="hljs-literal">null</span> || <span class="hljs-keyword">when</span> == <span class="hljs-number">0</span> || <span class="hljs-keyword">when</span> &lt; p.<span class="hljs-keyword">when</span>) {
+            <span class="hljs-comment">//p为null(代表MessageQueue没有消息） 或者msg的触发时间是队列中最早的， 则进入该该分支</span>
+            msg.next = p;
+            mMessages = msg;
+            needWake = mBlocked; <span class="hljs-comment">//当阻塞时需要唤醒</span>
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">//将消息按时间顺序插入到MessageQueue。一般地，不需要唤醒事件队列，除非</span>
+            <span class="hljs-comment">//消息队头存在barrier，并且同时Message是队列中最早的异步消息。</span>
+            needWake = mBlocked &amp;&amp; p.target == <span class="hljs-literal">null</span> &amp;&amp; msg.isAsynchronous();
+            Message prev;
+            <span class="hljs-keyword">for</span> (;;) {
+                prev = p;
+                p = p.next;
+                <span class="hljs-keyword">if</span> (p == <span class="hljs-literal">null</span> || <span class="hljs-keyword">when</span> &lt; p.<span class="hljs-keyword">when</span>) {
+                    <span class="hljs-keyword">break</span>;
+                }
+                <span class="hljs-keyword">if</span> (needWake &amp;&amp; p.isAsynchronous()) {
+                    needWake = <span class="hljs-literal">false</span>;
+                }
+            }
+            msg.next = p;
+            prev.next = msg;
+        }
+        <span class="hljs-comment">//消息没有退出，我们认为此时mPtr != 0</span>
+        <span class="hljs-keyword">if</span> (needWake) {
+            nativeWake(mPtr);
+        }
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+}
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">MessageQueue</code>是按照Message触发时间的先后顺序排列的，队头的消息是将要最早触发的消息。当有消息需要加入消息队列时，会从队列头开始遍历，直到找到消息应该插入的合适位置，以保证所有消息的时间顺序。</p>
+
+<h3 id="44-removemessages">4.4 removeMessages<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#44-removemessages" aria-label="Anchor link for: 44 removemessages" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs cs"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">removeMessages</span>(<span class="hljs-params">Handler h, <span class="hljs-keyword">int</span> what, Object <span class="hljs-keyword">object</span></span>) </span>{
+    <span class="hljs-keyword">if</span> (h == <span class="hljs-literal">null</span>) {
+        <span class="hljs-keyword">return</span>;
+    }
+    synchronized (<span class="hljs-keyword">this</span>) {
+        Message p = mMessages;
+        <span class="hljs-comment">//从消息队列的头部开始，移除所有符合条件的消息</span>
+        <span class="hljs-keyword">while</span> (p != <span class="hljs-literal">null</span> &amp;&amp; p.target == h &amp;&amp; p.what == what
+               &amp;&amp; (<span class="hljs-keyword">object</span> == <span class="hljs-literal">null</span> || p.obj == <span class="hljs-keyword">object</span>)) {
+            Message n = p.next;
+            mMessages = n;
+            p.recycleUnchecked();
+            p = n;
+        }
+        <span class="hljs-comment">//移除剩余的符合要求的消息</span>
+        <span class="hljs-keyword">while</span> (p != <span class="hljs-literal">null</span>) {
+            Message n = p.next;
+            <span class="hljs-keyword">if</span> (n != <span class="hljs-literal">null</span>) {
+                <span class="hljs-keyword">if</span> (n.target == h &amp;&amp; n.what == what
+                    &amp;&amp; (<span class="hljs-keyword">object</span> == <span class="hljs-literal">null</span> || n.obj == <span class="hljs-keyword">object</span>)) {
+                    Message nn = n.next;
+                    n.recycleUnchecked();
+                    p.next = nn;
+                    <span class="hljs-keyword">continue</span>;
+                }
+            }
+            p = n;
+        }
+    }
+}
+</code></pre>
+</div>
+
+<p>这个移除消息的方法，采用了两个while循环，第一个循环是从队头开始，移除符合条件的消息，第二个循环是从头部移除完连续的满足条件的消息之后，再从队列后面继续查询是否有满足条件的消息需要被移除。</p>
+
+<h3 id="45-postsyncbarrier">4.5 postSyncBarrier<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#45-postsyncbarrier" aria-label="Anchor link for: 45 postsyncbarrier" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<p>public int postSyncBarrier() {
+      return postSyncBarrier(SystemClock.uptimeMillis());
+  }</p>
+
+<p>private int postSyncBarrier(long when) {
+      synchronized (this) {
+          final int token = mNextBarrierToken++;
+          final Message msg = Message.obtain();
+          msg.markInUse();
+          msg.when = when;
+          msg.arg1 = token;</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs ruby">      Message prev = null;
+      Message p = mMessages;
+      <span class="hljs-keyword">if</span> (<span class="hljs-keyword">when</span> != <span class="hljs-number">0</span>) {
+          <span class="hljs-keyword">while</span> (p != null &amp;&amp; p.<span class="hljs-keyword">when</span> &lt;= <span class="hljs-keyword">when</span>) {
+              prev = p;
+              p = p.<span class="hljs-keyword">next</span>;
+          }
+      }
+      <span class="hljs-keyword">if</span> (prev != null) { <span class="hljs-regexp">//</span> <span class="hljs-symbol">invariant:</span> p == prev.<span class="hljs-keyword">next</span>
+          msg.<span class="hljs-keyword">next</span> = p;
+          prev.<span class="hljs-keyword">next</span> = msg;
+      } <span class="hljs-keyword">else</span> {
+          msg.<span class="hljs-keyword">next</span> = p;
+          mMessages = msg;
+      }
+      <span class="hljs-keyword">return</span> token;
+  }   }
+</code></pre>
+</div>
+
+<p>前面小节[4.3]已说明每一个普通Message必须有一个target，对于特殊的message是没有target，即同步barrier token。
+这个消息的价值就是用于拦截同步消息，所以并不会唤醒Looper.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">removeSyncBarrier</span><span class="hljs-params">(<span class="hljs-keyword">int</span> token)</span> </span>{
+     <span class="hljs-keyword">synchronized</span> (<span class="hljs-keyword">this</span>) {
+         Message prev = <span class="hljs-keyword">null</span>;
+         Message p = mMessages;
+         <span class="hljs-comment">//从消息队列找到 target为空,并且token相等的Message</span>
+         <span class="hljs-keyword">while</span> (p != <span class="hljs-keyword">null</span> &amp;&amp; (p.target != <span class="hljs-keyword">null</span> || p.arg1 != token)) {
+             prev = p;
+             p = p.next;
+         }
+         <span class="hljs-keyword">if</span> (p == <span class="hljs-keyword">null</span>) {
+             <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalStateException(<span class="hljs-string">"The specified message queue synchronization "</span>
+                     + <span class="hljs-string">" barrier token has not been posted or has already been removed."</span>);
+         }
+         <span class="hljs-keyword">final</span> <span class="hljs-keyword">boolean</span> needWake;
+         <span class="hljs-keyword">if</span> (prev != <span class="hljs-keyword">null</span>) {
+             prev.next = p.next;
+             needWake = <span class="hljs-keyword">false</span>;
+         } <span class="hljs-keyword">else</span> {
+             mMessages = p.next;
+             needWake = mMessages == <span class="hljs-keyword">null</span> || mMessages.target != <span class="hljs-keyword">null</span>;
+         }
+         p.recycleUnchecked();
+
+         <span class="hljs-keyword">if</span> (needWake &amp;&amp; !mQuitting) {
+             nativeWake(mPtr);
+         }
+     }
+ }
+</code></pre>
+</div>
+
+<p>postSyncBarrier只对同步消息产生影响，对于异步消息没有任何差别。</p>
+
+<h2 id="五-message">五、 Message<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#五-message" aria-label="Anchor link for: 五 message" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h2>
+
+<h3 id="51-创建消息">5.1 创建消息<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#51-创建消息" aria-label="Anchor link for: 51 创建消息" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<p>每个消息用<code class="highlighter-rouge">Message</code>表示，<code class="highlighter-rouge">Message</code>主要包含以下内容：</p>
+
+<div class="table-responsive"><table class="table">
+  <thead>
+    <tr>
+      <th>数据类型</th>
+      <th>成员变量</th>
+      <th>解释</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>int</td>
+      <td>what</td>
+      <td>消息类别</td>
+    </tr>
+    <tr>
+      <td>long</td>
+      <td>when</td>
+      <td>消息触发时间</td>
+    </tr>
+    <tr>
+      <td>int</td>
+      <td>arg1</td>
+      <td>参数1</td>
+    </tr>
+    <tr>
+      <td>int</td>
+      <td>arg2</td>
+      <td>参数2</td>
+    </tr>
+    <tr>
+      <td>Object</td>
+      <td>obj</td>
+      <td>消息内容</td>
+    </tr>
+    <tr>
+      <td>Handler</td>
+      <td>target</td>
+      <td>消息响应方</td>
+    </tr>
+    <tr>
+      <td>Runnable</td>
+      <td>callback</td>
+      <td>回调方法</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<p>创建消息的过程，就是填充消息的上述内容的一项或多项。</p>
+
+<h3 id="52-消息池">5.2 消息池<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#52-消息池" aria-label="Anchor link for: 52 消息池" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h3>
+
+<p>在代码中，可能经常看到recycle()方法，咋一看，可能是在做虚拟机的gc()相关的工作，其实不然，这是用于把消息加入到消息池的作用。这样的好处是，当消息池不为空时，可以直接从消息池中获取Message对象，而不是直接创建，提高效率。</p>
+
+<p>静态变量<code class="highlighter-rouge">sPool</code>的数据类型为Message，通过next成员变量，维护一个消息池；静态变量<code class="highlighter-rouge">MAX_POOL_SIZE</code>代表消息池的可用大小；消息池的默认大小为50。</p>
+
+<p>消息池常用的操作方法是obtain()和recycle()。</p>
+
+<h4 id="521-obtain">5.2.1 obtain<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#521-obtain" aria-label="Anchor link for: 521 obtain" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<p>从消息池中获取消息</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Message <span class="hljs-title">obtain</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">synchronized</span> (sPoolSync) {
+        <span class="hljs-keyword">if</span> (sPool != <span class="hljs-keyword">null</span>) {
+            Message m = sPool;
+            sPool = m.next;
+            m.next = <span class="hljs-keyword">null</span>; <span class="hljs-comment">//从sPool中取出一个Message对象，并消息链表断开</span>
+            m.flags = <span class="hljs-number">0</span>; <span class="hljs-comment">// 清除in-use flag</span>
+            sPoolSize--; <span class="hljs-comment">//消息池的可用大小进行减1操作</span>
+            <span class="hljs-keyword">return</span> m;
+        }
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Message(); <span class="hljs-comment">// 当消息池为空时，直接创建Message对象</span>
+}
+</code></pre>
+</div>
+
+<p>obtain()，从消息池取Message，都是把消息池表头的Message取走，再把表头指向next;</p>
+
+<h4 id="522-recycle">5.2.2 recycle<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#522-recycle" aria-label="Anchor link for: 522 recycle" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h4>
+
+<p>把不再使用的消息加入消息池</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">recycle</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">if</span> (isInUse()) { <span class="hljs-comment">//判断消息是否正在使用</span>
+        <span class="hljs-keyword">if</span> (gCheckRecycle) { <span class="hljs-comment">//Android 5.0以后的版本默认为true,之前的版本默认为false.</span>
+            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> IllegalStateException(<span class="hljs-string">"This message cannot be recycled because it is still in use."</span>);
+        }
+        <span class="hljs-keyword">return</span>;
+    }
+    recycleUnchecked();
+}
+
+<span class="hljs-comment">//对于不再使用的消息，加入到消息池</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">recycleUnchecked</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">//将消息标示位置为IN_USE，并清空消息所有的参数。</span>
+    flags = FLAG_IN_USE;
+    what = <span class="hljs-number">0</span>;
+    arg1 = <span class="hljs-number">0</span>;
+    arg2 = <span class="hljs-number">0</span>;
+    obj = <span class="hljs-keyword">null</span>;
+    replyTo = <span class="hljs-keyword">null</span>;
+    sendingUid = -<span class="hljs-number">1</span>;
+    when = <span class="hljs-number">0</span>;
+    target = <span class="hljs-keyword">null</span>;
+    callback = <span class="hljs-keyword">null</span>;
+    data = <span class="hljs-keyword">null</span>;
+    <span class="hljs-keyword">synchronized</span> (sPoolSync) {
+        <span class="hljs-keyword">if</span> (sPoolSize &lt; MAX_POOL_SIZE) { <span class="hljs-comment">//当消息池没有满时，将Message对象加入消息池</span>
+            next = sPool;
+            sPool = <span class="hljs-keyword">this</span>;
+            sPoolSize++; <span class="hljs-comment">//消息池的可用大小进行加1操作</span>
+        }
+    }
+}
+</code></pre>
+</div>
+
+<p>recycle()，将Message加入到消息池的过程，都是把Message加到链表的表头；</p>
+
+<h2 id="六总结">六、总结<a class="anchorjs-link " href="http://gityuan.com/2015/12/26/handler-message-framework/#六总结" aria-label="Anchor link for: 六总结" data-anchorjs-icon="#" style="opacity: 1; padding-left: 0.375em;"></a></h2>
+
+<p>最后用一张图，来表示整个消息机制</p>
+
+<p><img src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/handler_java.jpg" alt="handler_java"></p>
+
+<p><strong>图解：</strong></p>
+
+<ul>
+  <li>Handler通过sendMessage()发送Message到MessageQueue队列；</li>
+  <li>Looper通过loop()，不断提取出达到触发条件的Message，并将Message交给target来处理；</li>
+  <li>经过dispatchMessage()后，交回给Handler的handleMessage()来进行相应地处理。</li>
+  <li>将Message加入MessageQueue时，处往管道写入字符，可以会唤醒loop线程；如果MessageQueue中没有Message，并处于Idle状态，则会执行IdelHandler接口中的方法，往往用于做一些清理性地工作。</li>
+</ul>
+
+<p><strong>消息分发的优先级：</strong></p>
+
+<ol>
+  <li>Message的回调方法：<code class="highlighter-rouge">message.callback.run()</code>，优先级最高；</li>
+  <li>Handler的回调方法：<code class="highlighter-rouge">Handler.mCallback.handleMessage(msg)</code>，优先级仅次于1；</li>
+  <li>Handler的默认方法：<code class="highlighter-rouge">Handler.handleMessage(msg)</code>，优先级最低。</li>
+</ol>
+
+								<hr>
+								<font color="#004B97"><strong>欢迎关注我的微博:</strong></font>
+
+<a target="_blank" href="http://weibo.com/gityuan"> 
+	<font color="#f57e42"><strong>weibo.com/gityuan </strong></font>
+</a>
+
+<font color="#004B97"><strong>！请随意</strong></font>
+
+<a target="_blank" href="http://gityuan.com/images/about-me/gityuan_pay.jpg">
+	<font color="#f57e42"><strong>¥打赏支持</strong></font>
+</a>
+
+<font color="#004B97"><strong>将激励创作更多技术干货！</strong></font><br>
+
+                <hr>
+								
+
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a target="_blank" href="http://gityuan.com/2015/12/20/signal/" data-toggle="tooltip" data-placement="top" title="Linux信号(signal)机制">
+                        上一篇<br>
+                        <span>Linux信号(signal)机制</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li class="next">
+                        <a target="_blank" href="http://gityuan.com/2015/12/27/handler-message-native/" data-toggle="tooltip" data-placement="top" title="Android消息机制2-Handler(Native层)">
+                        下一篇<br>
+                        <span>Android消息机制2-Handler(Native层)</span>
+                        </a>
+                    </li>
+                    
+                </ul>
+
+
+                
+
+            </div>  
+
+    <!-- Side Catalog Container -->
+        
+            <div class="
+                col-lg-2 col-lg-offset-0
+                visible-lg-block
+                sidebar-container
+                catalog-container">
+                <div class="side-catalog fixed">
+                    <hr class="hidden-sm hidden-xs">
+                    <h5 id="catalog">
+                        <a class="catalog-toggle" href="http://gityuan.com/2015/12/26/handler-message-framework/#">CATALOG</a>
+                    </h5>
+                    <ul class="catalog-body"><li class="h2_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#一概述" rel="nofollow">一、概述</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#11-模型" rel="nofollow">1.1 模型</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#12-架构图" rel="nofollow">1.2 架构图</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#13-典型实例" rel="nofollow">1.3 典型实例</a></li><li class="h2_nav active"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#二looper" rel="nofollow">二、Looper</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#21-prepare" rel="nofollow">2.1 prepare()</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#22-loop" rel="nofollow">2.2 loop()</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#23-quit" rel="nofollow">2.3 quit()</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#24-常用方法" rel="nofollow">2.4 常用方法</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#241-mylooper" rel="nofollow">2.4.1 myLooper</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#242-post" rel="nofollow">2.4.2 post</a></li><li class="h2_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#三handler" rel="nofollow">三、Handler</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#31-创建handler" rel="nofollow">3.1 创建Handler</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#311-无参构造" rel="nofollow">3.1.1 无参构造</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#312-有参构造" rel="nofollow">3.1.2 有参构造</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#32-消息分发机制" rel="nofollow">3.2 消息分发机制</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#33-消息发送" rel="nofollow">3.3 消息发送</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#331-sendemptymessage" rel="nofollow">3.3.1 sendEmptyMessage</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#332-sendemptymessagedelayed" rel="nofollow">3.3.2 sendEmptyMessageDelayed</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#333-sendmessagedelayed" rel="nofollow">3.3.3 sendMessageDelayed</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#334-sendmessageattime" rel="nofollow">3.3.4 sendMessageAtTime</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#335-sendmessageatfrontofqueue" rel="nofollow">3.3.5 sendMessageAtFrontOfQueue</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#336-post" rel="nofollow">3.3.6 post</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#337-postatfrontofqueue" rel="nofollow">3.3.7 postAtFrontOfQueue</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#338-enqueuemessage" rel="nofollow">3.3.8 enqueueMessage</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#338-小节" rel="nofollow">3.3.8 小节</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#34-其他方法" rel="nofollow">3.4 其他方法</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#341-obtainmessage" rel="nofollow">3.4.1 obtainMessage</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#342-removemessages" rel="nofollow">3.4.2 removeMessages</a></li><li class="h2_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#四messagequeue" rel="nofollow">四、MessageQueue</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#41-创建messagequeue" rel="nofollow">4.1 创建MessageQueue</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#42-next" rel="nofollow">4.2 next()</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#43-enqueuemessage" rel="nofollow">4.3 enqueueMessage</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#44-removemessages" rel="nofollow">4.4 removeMessages</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#45-postsyncbarrier" rel="nofollow">4.5 postSyncBarrier</a></li><li class="h2_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#五-message" rel="nofollow">五、 Message</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#51-创建消息" rel="nofollow">5.1 创建消息</a></li><li class="h3_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#52-消息池" rel="nofollow">5.2 消息池</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#521-obtain" rel="nofollow">5.2.1 obtain</a></li><li class="h4_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#522-recycle" rel="nofollow">5.2.2 recycle</a></li><li class="h2_nav"><a href="http://gityuan.com/2015/12/26/handler-message-framework/#六总结" rel="nofollow">六、总结</a></li></ul>
+                </div>
+            </div>
+        
+
+    <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5 id="featured-tags"><a target="_blank" href="http://gityuan.com/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#android" title="android" rel="133">
+                                    android
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#组件系列" title="组件系列" rel="19">
+                                    组件系列
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#else" title="else" rel="3">
+                                    else
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#debug" title="debug" rel="18">
+                                    debug
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#权限" title="权限" rel="2">
+                                    权限
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#web" title="web" rel="2">
+                                    web
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#tool" title="tool" rel="13">
+                                    tool
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#java" title="java" rel="13">
+                                    java
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#performance" title="performance" rel="4">
+                                    performance
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#app" title="app" rel="2">
+                                    app
+                                </a>
+                            
+        				
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#进程系列" title="进程系列" rel="13">
+                                    进程系列
+                                </a>
+                            
+        				
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#memory" title="memory" rel="5">
+                                    memory
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#jvm" title="jvm" rel="5">
+                                    jvm
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#linux" title="linux" rel="8">
+                                    linux
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#binder" title="binder" rel="19">
+                                    binder
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#ipc" title="ipc" rel="3">
+                                    ipc
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#handler" title="handler" rel="3">
+                                    handler
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#process" title="process" rel="6">
+                                    process
+                                </a>
+                            
+        				
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#系统启动" title="系统启动" rel="6">
+                                    系统启动
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#AMS" title="AMS" rel="2">
+                                    AMS
+                                </a>
+                            
+        				
+                            
+        				
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#stability" title="stability" rel="8">
+                                    stability
+                                </a>
+                            
+        				
+                            
+                				<a target="_blank" href="http://gityuan.com/tags/#组件" title="组件" rel="3">
+                                    组件
+                                </a>
+                            
+        				
+                            
+        				
+                            
+        				
+        			</div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                <!-- 
+                 -->
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<script>
+    async("http://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    <li>
+                        <a target="_blank" href="http://weibo.com/gityuan">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://www.zhihu.com/people/gityuan">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa  fa-stack-1x fa-inverse">知</i>
+                            </span>
+                        </a>
+                    </li>
+                    
+										
+                    <li>
+                        <a target="_blank" href="https://plus.google.com/101388994961262711072">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa  fa-google fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    
+                    
+                    
+                    
+                    <li>
+                        <a target="_blank" href="http://gityuan.com/feed.xml">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright © Gityuan  2017 | Powered by Jekyll with Hux Theme
+                </p>
+                <!-- 流量统计 -->
+								<div style="display:none">
+									<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000098804'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s22.cnzz.com/z_stat.php%3Fid%3D1000098804%26show%3Dpic' type='text/javascript'%3E%3C/script%3E"));</script><span id="cnzz_stat_icon_1000098804"><a href="http://www.cnzz.com/stat/website.php?web_id=1000098804" target="_blank" title="站长统计"><img border="0" hspace="0" vspace="0" src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/pic.gif"></a></span><script src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/z_stat.php" type="text/javascript"></script><script src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/core.php" charset="utf-8" type="text/javascript"></script>
+								</div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/jquery.min.js"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/bootstrap.min.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="./Android消息机制1-Handler(Java层) - Gityuan博客 _ 袁辉辉博客_files/hux-blog.min.js"></script>
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async('/js/jquery.tagcloud.js',function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("http://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+<!-- Side Catalog -->
+
+<script type="text/javascript">
+    function generateCatalog (selector) {
+        var P = $('div.post-container'),a,n,t,l,i,c;
+        a = P.find('h1,h2,h3,h4,h5,h6');
+        a.each(function () {
+            n = $(this).prop('tagName').toLowerCase();
+            i = "#"+$(this).prop('id');
+            t = $(this).text();
+            c = $('<a href="'+i+'" rel="nofollow">'+t+'</a>');
+            l = $('<li class="'+n+'_nav"></li>').append(c);
+            $(selector).append(l);
+        });
+        return true;
+    }
+
+    generateCatalog(".catalog-body");
+
+    // toggle side catalog
+    $(".catalog-toggle").click((function(e){
+        e.preventDefault();
+        $('.side-catalog').toggleClass("fold")
+    }))
+
+    async("/js/jquery.nav.js", function () {
+        $('.catalog-body').onePageNav({
+            currentClass: "active",
+            changeHash: !1,
+            easing: "swing",
+            filter: "",
+            scrollSpeed: 700,
+            scrollOffset: 0,
+            scrollThreshold: .2,
+            begin: null,
+            end: null,
+            scrollChange: null,
+            padding: 80
+        });
+    });
+</script>
+
+
+
+
+
+
+</body></html>
